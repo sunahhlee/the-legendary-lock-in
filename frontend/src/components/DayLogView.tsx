@@ -6,7 +6,10 @@ interface DayLogViewProps {
   onDateChange: (newDate: string) => void;
   dailyLog: DailyLog | null;
   templates: FoodTemplate[];
-  onAddEntry: (entry: { name: string; calories: number; protein: number; template_id?: string | null }, saveTemplate: boolean) => Promise<void>;
+  onAddEntry: (
+    entry: { name: string; calories: number; protein: number; template_id?: string | null },
+    saveTemplate: boolean
+  ) => Promise<void>;
   onDeleteEntry: (entryId: string) => Promise<void>;
 }
 
@@ -25,7 +28,6 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Template autofill handler
   const handleSelectTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const templateId = e.target.value;
     setSelectedTemplateId(templateId);
@@ -66,7 +68,6 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
         },
         saveAsTemplate
       );
-      // Reset form
       setName('');
       setCalories('');
       setProtein('');
@@ -80,13 +81,15 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   };
 
   return (
-    <div className="card shadow-md rounded-xl p-6 bg-white border border-gray-100 mb-6">
-      {/* Date Navigation Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-gray-100 pb-4 mb-6">
-        <div className="flex items-center gap-3">
+    <div className="w-full bg-white rounded-2xl shadow-sm border border-slate-200/80 p-6 md:p-8 mb-8 text-left">
+      {/* Date Navigation & Macro Totals */}
+      <div className="flex flex-col sm:flex-row items-center justify-between gap-4 border-b border-slate-100 pb-6 mb-6">
+        {/* Date Selector */}
+        <div className="flex items-center gap-2">
           <button
+            type="button"
             onClick={handlePrevDay}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700"
+            className="px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-semibold text-slate-700 transition"
           >
             ← Prev
           </button>
@@ -94,11 +97,12 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
             type="date"
             value={currentDate}
             onChange={(e) => onDateChange(e.target.value)}
-            className="border border-gray-300 rounded-lg px-3 py-1.5 text-base font-semibold text-gray-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+            className="border border-slate-300 rounded-lg px-3.5 py-2 text-base font-bold text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 bg-white"
           />
           <button
+            type="button"
             onClick={handleNextDay}
-            className="px-3 py-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-sm font-medium text-gray-700"
+            className="px-3.5 py-2 rounded-lg border border-slate-200 hover:bg-slate-50 text-sm font-semibold text-slate-700 transition"
           >
             Next →
           </button>
@@ -106,62 +110,65 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
 
         {/* Daily Aggregates Badges */}
         <div className="flex items-center gap-4">
-          <div className="bg-amber-50 border border-amber-200 px-4 py-2 rounded-xl text-right">
-            <div className="text-xs font-semibold text-amber-700 uppercase tracking-wide">Calories</div>
-            <div className="text-xl font-bold text-amber-900">
-              {dailyLog?.total_calories?.toLocaleString() ?? 0} <span className="text-xs font-normal">kcal</span>
+          <div className="bg-amber-50/80 border border-amber-200 px-5 py-2.5 rounded-xl text-right min-w-[130px]">
+            <div className="text-[11px] font-bold text-amber-700 uppercase tracking-wider">Calories</div>
+            <div className="text-2xl font-black text-amber-950">
+              {dailyLog?.total_calories ? dailyLog.total_calories.toLocaleString() : 0}{' '}
+              <span className="text-xs font-semibold text-amber-700">kcal</span>
             </div>
           </div>
-          <div className="bg-orange-50 border border-orange-200 px-4 py-2 rounded-xl text-right">
-            <div className="text-xs font-semibold text-orange-700 uppercase tracking-wide">Protein</div>
-            <div className="text-xl font-bold text-orange-900">
-              {dailyLog?.total_protein ?? 0} <span className="text-xs font-normal">g</span>
+          <div className="bg-orange-50/80 border border-orange-200 px-5 py-2.5 rounded-xl text-right min-w-[130px]">
+            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider">Protein</div>
+            <div className="text-2xl font-black text-orange-950">
+              {dailyLog?.total_protein ?? 0} <span className="text-xs font-semibold text-orange-700">g</span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Logged Meal Entries Table */}
-      <div className="mb-6">
-        <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider mb-3">
+      {/* Logged Items Section */}
+      <div className="mb-8">
+        <h3 className="text-base font-bold text-slate-800 tracking-tight mb-3">
           Logged Items ({dailyLog?.entries?.length ?? 0})
         </h3>
+
         {(!dailyLog?.entries || dailyLog.entries.length === 0) ? (
-          <div className="p-6 text-center text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-            No food items logged for this date yet.
+          <div className="p-8 text-center text-slate-400 bg-slate-50/60 rounded-xl border border-dashed border-slate-200">
+            No food items logged for this date yet. Use the form below to add your first item.
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="border border-slate-100 rounded-xl overflow-hidden shadow-xs">
             <table className="w-full text-left text-sm">
-              <thead>
-                <tr className="border-b border-gray-200 text-gray-400 text-xs">
-                  <th className="py-2.5 font-semibold">Food / Meal</th>
-                  <th className="py-2.5 font-semibold text-right">Calories</th>
-                  <th className="py-2.5 font-semibold text-right">Protein</th>
-                  <th className="py-2.5 font-semibold text-right">Actions</th>
+              <thead className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider border-b border-slate-100">
+                <tr>
+                  <th className="py-3 px-4 font-bold">Food / Meal</th>
+                  <th className="py-3 px-4 font-bold text-right w-32">Calories</th>
+                  <th className="py-3 px-4 font-bold text-right w-28">Protein</th>
+                  <th className="py-3 px-4 font-bold text-right w-24">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-slate-100">
                 {dailyLog.entries.map((entry) => (
-                  <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="py-3 font-medium text-gray-800">
-                      {entry.name}
+                  <tr key={entry.id} className="hover:bg-slate-50/70 transition-colors">
+                    <td className="py-3.5 px-4 font-medium text-slate-800">
+                      <span>{entry.name}</span>
                       {entry.template_id && (
-                        <span className="ml-2 text-[11px] bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full">
+                        <span className="ml-2 text-[11px] font-semibold bg-amber-100 text-amber-800 px-2 py-0.5 rounded-full inline-block">
                           Template
                         </span>
                       )}
                     </td>
-                    <td className="py-3 text-right font-semibold text-amber-700">
+                    <td className="py-3.5 px-4 text-right font-bold text-amber-700 whitespace-nowrap">
                       {entry.calories} kcal
                     </td>
-                    <td className="py-3 text-right font-semibold text-orange-700">
-                      {entry.protein > 0 ? `${entry.protein}g` : <span className="text-gray-300">-</span>}
+                    <td className="py-3.5 px-4 text-right font-bold text-orange-700 whitespace-nowrap">
+                      {entry.protein > 0 ? `${entry.protein}g` : <span className="text-slate-300 font-normal">-</span>}
                     </td>
-                    <td className="py-3 text-right">
+                    <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <button
+                        type="button"
                         onClick={() => onDeleteEntry(entry.id)}
-                        className="text-red-500 hover:text-red-700 text-xs px-2 py-1 rounded hover:bg-red-50"
+                        className="text-xs font-semibold text-red-600 hover:text-red-700 px-2.5 py-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 transition"
                       >
                         Delete
                       </button>
@@ -174,18 +181,21 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
         )}
       </div>
 
-      {/* Add New Entry Form */}
-      <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-        <h4 className="text-xs font-bold text-gray-600 uppercase tracking-wider mb-3">Add Food Item</h4>
-        <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Add Food Item Section */}
+      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+        <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Add Food Item</h4>
+
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Quick template selector */}
           {templates.length > 0 && (
             <div>
-              <label className="block text-xs font-medium text-gray-500 mb-1">Quick-fill from Saved Template:</label>
+              <label className="block text-xs font-semibold text-slate-600 mb-1.5">
+                Quick-fill from Saved Template:
+              </label>
               <select
                 value={selectedTemplateId}
                 onChange={handleSelectTemplate}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-800"
+                className="w-full text-sm border border-slate-300 rounded-xl px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               >
                 <option value="">-- Select frequent food template --</option>
                 {templates.map((t) => (
@@ -197,49 +207,59 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="md:col-span-2">
+          {/* Input Fields: Description is wide/large, calories & protein stay compact */}
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
+            {/* Wide Food Description input */}
+            <div className="md:col-span-8">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Food / Dish Description</label>
               <input
                 type="text"
-                placeholder="Food or dish description..."
+                placeholder="e.g. 40g Oats w 120g soy milk, 170g yogurt..."
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 required
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                className="w-full text-sm border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
-            <div>
+
+            {/* Short Calories input */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Calories (kcal)</label>
               <input
                 type="number"
                 step="any"
                 min="0"
-                placeholder="Calories (kcal)"
+                placeholder="kcal"
                 value={calories}
                 onChange={(e) => setCalories(e.target.value)}
                 required
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
-            <div>
+
+            {/* Short Protein input */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Protein (g)</label>
               <input
                 type="number"
                 step="any"
                 min="0"
-                placeholder="Protein (g) (opt)"
+                placeholder="g (opt)"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 bg-white"
+                className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
           </div>
 
-          <div className="flex items-center justify-between pt-1">
-            <label className="flex items-center gap-2 text-xs text-gray-600 cursor-pointer">
+          {/* Action Row: Checkbox on left, Dedicated Log Item Button on right */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pt-2">
+            <label className="flex items-center gap-2.5 text-xs font-medium text-slate-600 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={saveAsTemplate}
                 onChange={(e) => setSaveAsTemplate(e.target.checked)}
-                className="rounded text-amber-600 focus:ring-amber-500"
+                className="w-4 h-4 rounded text-amber-600 border-slate-300 focus:ring-amber-500"
               />
               Save as reusable template for quick entry later
             </label>
@@ -247,9 +267,9 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || !name || !calories}
-              className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors shadow-sm"
+              className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition hover:shadow cursor-pointer"
             >
-              {isSubmitting ? 'Adding...' : '+ Log Item'}
+              {isSubmitting ? 'Logging...' : '+ Log Item'}
             </button>
           </div>
         </form>
