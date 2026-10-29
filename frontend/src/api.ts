@@ -1,4 +1,4 @@
-import { DailyLog, MealEntry, FoodTemplate, TimeseriesResponse } from './types';
+import { DailyLog, MealEntry, FoodTemplate, TimeseriesResponse, UserGoal } from './types';
 
 export const api = {
   async getDailyLog(date: string): Promise<DailyLog> {
@@ -70,5 +70,30 @@ export const api = {
   async deleteTemplate(id: string): Promise<void> {
     const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete template');
+  },
+
+  // User Goals
+  async getUserGoals(userId: string): Promise<UserGoal[]> {
+    const res = await fetch(`/api/users/${userId}/goals`);
+    if (!res.ok) throw new Error('Failed to fetch user goals');
+    return res.json();
+  },
+
+  async createUserGoal(
+    userId: string,
+    goal: { calorie_goal: number; protein_goal: number; start_date: string; end_date?: string | null }
+  ): Promise<UserGoal> {
+    const res = await fetch(`/api/users/${userId}/goals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(goal),
+    });
+    if (!res.ok) throw new Error('Failed to create user goal');
+    return res.json();
+  },
+
+  async deleteUserGoal(goalId: string): Promise<void> {
+    const res = await fetch(`/api/goals/${goalId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete goal');
   },
 };

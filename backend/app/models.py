@@ -24,6 +24,21 @@ class User(Base):
 
     daily_logs = relationship("DailyLog", back_populates="user", cascade="all, delete-orphan")
     food_templates = relationship("FoodTemplate", back_populates="user", cascade="all, delete-orphan")
+    goals = relationship("UserGoal", back_populates="user", cascade="all, delete-orphan", order_by="UserGoal.start_date.desc()")
+
+
+class UserGoal(Base):
+    __tablename__ = "user_goals"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    calorie_goal = Column(Numeric(8, 2), nullable=False)
+    protein_goal = Column(Numeric(7, 2), nullable=False)
+    start_date = Column(Date, nullable=False)
+    end_date = Column(Date, nullable=True)
+    created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    user = relationship("User", back_populates="goals")
 
 
 class FoodTemplate(Base):
