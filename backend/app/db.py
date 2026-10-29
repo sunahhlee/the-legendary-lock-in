@@ -1,17 +1,56 @@
 from typing import Optional
-from supabase import create_client, Client
-from app.config import settings
+from urllib.parse import urlparse
+from pydantic_settings import BaseSettings
+from sqlalchemy import create_engine
+from sqlalchemy.orm import declarative_base, sessionmaker
 
-supabase_client: Optional[Client] = None
 
-if settings.SUPABASE_URL and settings.SUPABASE_KEY:
+class Settings(BaseSettings):
+    SUPABASE_URL: Optional[str] = None
+    SUPABASE_KEY: Optional[str] = None
+    SUPABASE_DB_URL: Optional[str] = None
+    PORT: int = 8000
+    ENVIRONMENT: str = "development"
+    DEFAULT_USER_ID: str = "00000000-0000-0000-0000-000000000001"
+
+    class Config:
+        env_file = ".env"
+        extra = "ignore"
+
+
+settings = Settings()
+
+# Construct SQLAlchemy database URL safely from SUPABASE_DB_URL
+engine = None
+SessionLocal = None
+
+if settings.SUPABASE_DB_URL:
+    raw_url = settings.SUPABASE_DB_URL
+    parsed = urlparse(raw_url)
+    
+    # Strip non-standard Supabase pooler query parameters for psycopg2 / SQLAlchemy
+    clean_url = (
+        f"postgresql://{parsed.username}:{parsed.password}@"
+        f"{parsed.hostname}:{parsed.port or 6543}/{parsed.path.lstrip('/')}?sslmode=require"
+    )
+    
+    engine = create_engine(
+        clean_url,
+        pool_pre_ping=True,
+        pool_size=5,
+        max_overflow=10,
+    )
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
+
+
+def get_db():
+    """Dependency helper providing a database session per request."""
+    if SessionLocal is None:
+        raise RuntimeError("Database session factory is not configured. Check SUPABASE_DB_URL.")
+    db = SessionLocal()
     try:
-        supabase_client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
-    except Exception as e:
-        print(f"Warning: Failed to initialize Supabase client: {e}")
-        supabase_client = None
-
-
-def get_supabase() -> Optional[Client]:
-    """Dependency helper to get the initialized Supabase client."""
-    return supabase_client
+        yield db
+    finally:
+        db.close()
