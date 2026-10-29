@@ -1,0 +1,226 @@
+from datetime import date as date_type
+from typing import List, Optional
+from uuid import UUID
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
+from app.db import get_db
+from app.config import settings
+from app.models import DailyLog, MealEntry, FoodTemplate
+from app.schemas import (
+    DailyLogResponse,
+    MealEntryCreate,
+    MealEntryUpdate,
+    MealEntryResponse,
+    FoodTemplateCreate,
+    FoodTemplateResponse,
+    TimeseriesResponse,
+)
+from app.crud import (
+    get_or_create_daily_log,
+    build_daily_log_response,
+    get_timeseries_analytics,
+)
+
+router = APIRouter(prefix="/api", tags=["Diet Tracker"])
+
+CURRENT_USER_ID = UUID(settings.DEFAULT_USER_ID)
+
+
+# ==========================================
+# Daily Logs & Entries Endpoints
+# ==========================================
+
+@router.get("/logs", response_model=List[DailyLogResponse])
+def get_daily_logs(
+    start_date: Optional[date_type] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date_type] = Query(None, description="End date (YYYY-MM-DD)"),
+    db: Session = Depends(get_db),
+):
+    """Retrieve daily logs and food entries for a date range."""
+    query = db.query(DailyLog).filter(DailyLog.user_id == CURRENT_USER_ID)
+    if start_date:
+        query = query.filter(DailyLog.date >= start_date)
+    if end_date:
+        query = query.filter(DailyLog.date <= end_date)
+
+    logs = query.order_by(DailyLog.date.desc()).all()
+    return [build_daily_log_response(log) for log in logs]
+
+
+@router.get("/logs/{log_date}", response_model=DailyLogResponse)
+def get_daily_log_by_date(log_date: date_type, db: Session = Depends(get_db)):
+    """Fetch log for a specific date, creating it if not already present."""
+    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    return build_daily_log_response(log)
+
+
+@router.post("/logs/{log_date}/entries", response_model=DailyLogResponse)
+def add_meal_entry(
+    log_date: date_type,
+    entry_in: MealEntryCreate,
+    save_as_template: bool = Query(False, description="Optionally save this entry as a reusable food template"),
+    db: Session = Depends(get_db),
+):
+    """Log an item for a given date with calories and protein values."""
+    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+
+    template_id = entry_in.template_id
+
+    # If requested to save as reusable template
+    if save_as_template:
+        template = FoodTemplate(
+            user_id=CURRENT_USER_ID,
+            name=entry_in.name,
+            default_calories=entry_in.calories,
+            default_protein=entry_in.protein,
+        )
+        db.add(template)
+        db.flush()
+        template_id = template.id
+
+    new_entry = MealEntry(
+        daily_log_id=log.id,
+        template_id=template_id,
+        name=entry_in.name,
+        calories=entry_in.calories,
+        protein=entry_in.protein,
+        sort_order=entry_in.sort_order,
+    )
+    db.add(new_entry)
+    db.commit()
+    db.refresh(log)
+
+    return build_daily_log_response(log)
+
+
+@router.put("/entries/{entry_id}", response_model=MealEntryResponse)
+def update_meal_entry(
+    entry_id: UUID,
+    entry_update: MealEntryUpdate,
+    db: Session = Depends(get_db),
+):
+    """Update an existing logged item."""
+    entry = db.query(MealEntry).filter(MealEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Meal entry not found")
+
+    if entry_update.name is not None:
+        entry.name = entry_update.name
+    if entry_update.calories is not None:
+        entry.calories = entry_update.calories
+    if entry_update.protein is not None:
+        entry.protein = entry_update.protein
+    if entry_update.sort_order is not None:
+        entry.sort_order = entry_update.sort_order
+
+    db.commit()
+    db.refresh(entry)
+
+    return MealEntryResponse(
+        id=entry.id,
+        daily_log_id=entry.daily_log_id,
+        template_id=entry.template_id,
+        name=entry.name,
+        calories=float(entry.calories),
+        protein=float(entry.protein),
+        sort_order=entry.sort_order,
+        created_at=entry.created_at,
+    )
+
+
+@router.delete("/entries/{entry_id}")
+def delete_meal_entry(entry_id: UUID, db: Session = Depends(get_db)):
+    """Delete a logged food item."""
+    entry = db.query(MealEntry).filter(MealEntry.id == entry_id).first()
+    if not entry:
+        raise HTTPException(status_code=404, detail="Meal entry not found")
+
+    db.delete(entry)
+    db.commit()
+    return {"message": "Meal entry deleted successfully", "id": str(entry_id)}
+
+
+# ==========================================
+# Timeseries Analytics (Dual-Axis Chart Data)
+# ==========================================
+
+@router.get("/analytics/timeseries", response_model=TimeseriesResponse)
+def get_analytics(
+    start_date: Optional[date_type] = Query(None),
+    end_date: Optional[date_type] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """Get aggregated daily calories and protein for timeseries visualization."""
+    return get_timeseries_analytics(db, CURRENT_USER_ID, start_date, end_date)
+
+
+# ==========================================
+# Food Templates Endpoints
+# ==========================================
+
+@router.get("/templates", response_model=List[FoodTemplateResponse])
+def get_food_templates(db: Session = Depends(get_db)):
+    """List all saved food templates for rapid logging."""
+    templates = (
+        db.query(FoodTemplate)
+        .filter(FoodTemplate.user_id == CURRENT_USER_ID)
+        .order_by(FoodTemplate.name.asc())
+        .all()
+    )
+    return [
+        FoodTemplateResponse(
+            id=t.id,
+            user_id=t.user_id,
+            name=t.name,
+            default_calories=float(t.default_calories),
+            default_protein=float(t.default_protein),
+            category=t.category,
+            created_at=t.created_at,
+        )
+        for t in templates
+    ]
+
+
+@router.post("/templates", response_model=FoodTemplateResponse)
+def create_food_template(
+    template_in: FoodTemplateCreate,
+    db: Session = Depends(get_db),
+):
+    """Create a new reusable food item template."""
+    template = FoodTemplate(
+        user_id=CURRENT_USER_ID,
+        name=template_in.name,
+        default_calories=template_in.default_calories,
+        default_protein=template_in.default_protein,
+        category=template_in.category,
+    )
+    db.add(template)
+    db.commit()
+    db.refresh(template)
+
+    return FoodTemplateResponse(
+        id=template.id,
+        user_id=template.user_id,
+        name=template.name,
+        default_calories=float(template.default_calories),
+        default_protein=float(template.default_protein),
+        category=template.category,
+        created_at=template.created_at,
+    )
+
+
+@router.delete("/templates/{template_id}")
+def delete_food_template(template_id: UUID, db: Session = Depends(get_db)):
+    """Remove a food template without altering past logs."""
+    template = (
+        db.query(FoodTemplate)
+        .filter(FoodTemplate.id == template_id, FoodTemplate.user_id == CURRENT_USER_ID)
+        .first()
+    )
+    if not template:
+        raise HTTPException(status_code=404, detail="Food template not found")
+
+    db.delete(template)
+    db.commit()
+    return {"message": "Food template deleted successfully", "id": str(template_id)}

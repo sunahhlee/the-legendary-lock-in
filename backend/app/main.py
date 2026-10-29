@@ -1,11 +1,15 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.db import get_supabase
 from app.config import settings
+from app.routes import router as diet_router
 
-app = FastAPI(title="The Legendary Lock-In API", version="0.1.0")
+app = FastAPI(
+    title="The Legendary Lock-In API",
+    description="Backend API for diet tracking (calories, protein, templates, and analytics)",
+    version="0.1.0",
+)
 
-# Setup CORS for local frontend development
+# CORS middleware for local frontend dev & preview
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -13,6 +17,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include Diet Tracker Router
+app.include_router(diet_router)
 
 
 @app.get("/")
@@ -25,8 +32,7 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    supabase = get_supabase()
     return {
         "status": "ok",
-        "database": "configured" if supabase is not None else "credentials_pending",
+        "database": "connected" if settings.SUPABASE_DB_URL else "not_configured",
     }
