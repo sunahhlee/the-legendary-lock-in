@@ -2,11 +2,18 @@ import { useState, useEffect } from 'react';
 import { api } from './api';
 import { DailyLog, FoodTemplate, DailyMacroPoint, UserGoal } from './types';
 import { DayLogView } from './components/DayLogView';
-import { DualAxisMacroChart } from './components/DualAxisMacroChart';
+import { DualAxisMacroChart, RangeOption } from './components/DualAxisMacroChart';
 import { TemplateManager } from './components/TemplateManager';
 import { UserGoalsModal } from './components/UserGoalsModal';
 
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
+
+// Helper to calculate date string offset from today
+const getDateNDaysAgo = (n: number) => {
+  const d = new Date();
+  d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0, 10);
+};
 
 export default function App() {
   const [currentDate, setCurrentDate] = useState<string>(
@@ -15,6 +22,11 @@ export default function App() {
   const [userId, setUserId] = useState<string>(DEFAULT_USER_ID);
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState<boolean>(false);
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
+
+  // Chart Date Range Filter State (7d default, 30d, 90d, custom)
+  const [chartRange, setChartRange] = useState<RangeOption>('7d');
+  const [customStartDate, setCustomStartDate] = useState<string>(getDateNDaysAgo(14));
+  const [customEndDate, setCustomEndDate] = useState<string>(new Date().toISOString().slice(0, 10));
 
   const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
   const [templates, setTemplates] = useState<FoodTemplate[]>([]);
@@ -45,23 +57,56 @@ export default function App() {
 
   const handleCloseGoalsModal = () => {
     setIsGoalsModalOpen(false);
-    // Return path to home
     if (window.location.pathname !== '/') {
       window.history.pushState({}, '', '/');
     }
-    // Refresh timeseries to pick up any new goal limits
-    loadTimeseries();
+    loadTimeseries(chartRange, customStartDate, customEndDate);
     loadDailyLog(currentDate);
   };
 
-  // Load timeseries data for the chart
-  const loadTimeseries = async () => {
+  // Load timeseries data for the chart based on chosen range
+  const loadTimeseries = async (
+    rangeOpt: RangeOption = chartRange,
+    cStart: string = customStartDate,
+    cEnd: string = customEndDate
+  ) => {
     try {
-      const res = await api.getTimeseries();
+      let start: string | undefined;
+      let end: string | undefined;
+
+      const today = new Date().toISOString().slice(0, 10);
+
+      if (rangeOpt === '7d') {
+        start = getDateNDaysAgo(6);
+        end = today;
+      } else if (rangeOpt === '30d') {
+        start = getDateNDaysAgo(29);
+        end = today;
+      } else if (rangeOpt === '90d') {
+        start = getDateNDaysAgo(89);
+        end = today;
+      } else if (rangeOpt === 'custom') {
+        start = cStart;
+        end = cEnd;
+      }
+
+      const res = await api.getTimeseries(start, end);
       setTimeseriesData(res.points);
     } catch (err) {
       console.error('Failed to load timeseries:', err);
     }
+  };
+
+  const handleRangeChange = (newRange: RangeOption, customStart?: string, customEnd?: string) => {
+    setChartRange(newRange);
+    if (customStart) setCustomStartDate(customStart);
+    if (customEnd) setCustomEndDate(customEnd);
+
+    loadTimeseries(
+      newRange,
+      customStart || customStartDate,
+      customEnd || customEndDate
+    );
   };
 
   // Load user goals
@@ -99,7 +144,7 @@ export default function App() {
       setLoading(true);
       await Promise.all([
         loadTemplates(),
-        loadTimeseries(),
+        loadTimeseries('7d'),
         loadDailyLog(currentDate),
         loadUserGoals(userId),
       ]);
@@ -122,7 +167,7 @@ export default function App() {
   ) => {
     const updatedLog = await api.addMealEntry(currentDate, entry, saveTemplate);
     setDailyLog(updatedLog);
-    loadTimeseries();
+    loadTimeseries(chartRange, customStartDate, customEndDate);
     if (saveTemplate) {
       loadTemplates();
     }
@@ -131,7 +176,7 @@ export default function App() {
   const handleDeleteEntry = async (entryId: string) => {
     await api.deleteMealEntry(entryId);
     await loadDailyLog(currentDate);
-    loadTimeseries();
+    loadTimeseries(chartRange, customStartDate, customEndDate);
   };
 
   const handleCreateTemplate = async (template: {
@@ -157,14 +202,14 @@ export default function App() {
   }) => {
     await api.createUserGoal(userId, goal);
     await loadUserGoals(userId);
-    await loadTimeseries();
+    await loadTimeseries(chartRange, customStartDate, customEndDate);
     await loadDailyLog(currentDate);
   };
 
   const handleDeleteGoal = async (goalId: string) => {
     await api.deleteUserGoal(goalId);
     await loadUserGoals(userId);
-    await loadTimeseries();
+    await loadTimeseries(chartRange, customStartDate, customEndDate);
     await loadDailyLog(currentDate);
   };
 
@@ -201,8 +246,14 @@ export default function App() {
           <div className="text-center py-24 text-slate-400 font-medium">Loading diet tracker...</div>
         ) : (
           <>
-            {/* Dual-Axis Macro Graph (Overlaid Calories, Protein, & Dashed Calorie Goal) */}
-            <DualAxisMacroChart data={timeseriesData} />
+            {/* Dual-Axis Macro Graph with 7d, 30d, 90d, and Custom Date Range Filter */}
+            <DualAxisMacroChart
+              data={timeseriesData}
+              range={chartRange}
+              customStartDate={customStartDate}
+              customEndDate={customEndDate}
+              onRangeChange={handleRangeChange}
+            />
 
             {/* Daily Logging View */}
             <DayLogView

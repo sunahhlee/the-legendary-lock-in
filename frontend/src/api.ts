@@ -40,8 +40,13 @@ export const api = {
     return res.json();
   },
 
-  async getTimeseries(): Promise<TimeseriesResponse> {
-    const res = await fetch('/api/analytics/timeseries');
+  async getTimeseries(startDate?: string, endDate?: string): Promise<TimeseriesResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`/api/analytics/timeseries${qs}`);
     if (!res.ok) throw new Error('Failed to fetch timeseries analytics');
     return res.json();
   },
