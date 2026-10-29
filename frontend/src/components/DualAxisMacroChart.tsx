@@ -29,13 +29,19 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
   customEndDate,
   onRangeChange,
 }) => {
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
   const [localStart, setLocalStart] = useState(customStartDate);
   const [localEnd, setLocalEnd] = useState(customEndDate);
+
+  const handleCustomClick = () => {
+    setIsCustomModalOpen(true);
+  };
 
   const handleApplyCustom = (e: React.FormEvent) => {
     e.preventDefault();
     if (localStart && localEnd) {
       onRangeChange('custom', localStart, localEnd);
+      setIsCustomModalOpen(false);
     }
   };
 
@@ -68,9 +74,9 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
   };
 
   return (
-    <div className="card shadow-md rounded-2xl p-6 bg-white border border-slate-200/80 mb-6 text-left">
+    <div className="card shadow-md rounded-2xl p-6 bg-white border border-slate-200/80 mb-6 text-left relative">
       {/* Chart Header & Date Filters */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b border-slate-100">
         <div>
           <h2 className="text-lg font-bold text-slate-800">Macro Trends &amp; Targets Over Time</h2>
           <p className="text-xs text-slate-500">
@@ -78,13 +84,16 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
           </p>
         </div>
 
-        {/* Date Range Selector Pills & Custom Inputs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200">
+        {/* Stable Date Range Selector Pills (Doesn't shift!) */}
+        <div className="flex items-center gap-2 relative">
+          <div className="inline-flex rounded-lg bg-slate-100 p-0.5 border border-slate-200 shadow-2xs">
             <button
               type="button"
-              onClick={() => onRangeChange('7d')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+              onClick={() => {
+                setIsCustomModalOpen(false);
+                onRangeChange('7d');
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
                 range === '7d'
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -94,8 +103,11 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onRangeChange('30d')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+              onClick={() => {
+                setIsCustomModalOpen(false);
+                onRangeChange('30d');
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
                 range === '30d'
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -105,8 +117,11 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onRangeChange('90d')}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+              onClick={() => {
+                setIsCustomModalOpen(false);
+                onRangeChange('90d');
+              }}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
                 range === '90d'
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
@@ -116,42 +131,16 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
             </button>
             <button
               type="button"
-              onClick={() => onRangeChange('custom', localStart, localEnd)}
-              className={`px-3 py-1.5 text-xs font-bold rounded-md transition ${
+              onClick={handleCustomClick}
+              className={`px-3 py-1.5 text-xs font-bold rounded-md transition cursor-pointer ${
                 range === 'custom'
                   ? 'bg-white text-slate-900 shadow-2xs'
                   : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Custom
+              Custom {range === 'custom' && '✓'}
             </button>
           </div>
-
-          {range === 'custom' && (
-            <form onSubmit={handleApplyCustom} className="flex items-center gap-1.5 text-xs">
-              <input
-                type="date"
-                value={localStart}
-                onChange={(e) => setLocalStart(e.target.value)}
-                required
-                className="border border-slate-300 rounded-md px-2 py-1 text-xs bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <span className="text-slate-400">to</span>
-              <input
-                type="date"
-                value={localEnd}
-                onChange={(e) => setLocalEnd(e.target.value)}
-                required
-                className="border border-slate-300 rounded-md px-2 py-1 text-xs bg-white text-slate-800 focus:outline-none focus:ring-1 focus:ring-amber-500"
-              />
-              <button
-                type="submit"
-                className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-2.5 py-1 rounded-md transition cursor-pointer"
-              >
-                Apply
-              </button>
-            </form>
-          )}
         </div>
       </div>
 
@@ -287,6 +276,68 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
               )}
             </ComposedChart>
           </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* Small Popup Modal for Custom Date Range */}
+      {isCustomModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-2xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 w-full max-w-sm text-left animate-in fade-in zoom-in-95 duration-100">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+              <h4 className="text-sm font-bold text-slate-800">Select Custom Date Range</h4>
+              <button
+                type="button"
+                onClick={() => setIsCustomModalOpen(false)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg px-2 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleApplyCustom} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={localStart}
+                  onChange={(e) => setLocalStart(e.target.value)}
+                  required
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">
+                  End Date
+                </label>
+                <input
+                  type="date"
+                  value={localEnd}
+                  onChange={(e) => setLocalEnd(e.target.value)}
+                  required
+                  className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-2xs"
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-2 pt-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setIsCustomModalOpen(false)}
+                  className="text-xs font-semibold text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-2xs transition cursor-pointer"
+                >
+                  Apply Range
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
