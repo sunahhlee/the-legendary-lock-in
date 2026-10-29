@@ -63,7 +63,6 @@ export default function App() {
   ) => {
     const updatedLog = await api.addMealEntry(currentDate, entry, saveTemplate);
     setDailyLog(updatedLog);
-    // Refresh chart and templates if saved
     loadTimeseries();
     if (saveTemplate) {
       loadTemplates();
@@ -92,33 +91,33 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-800">
-      {/* Top Navbar */}
-      <header className="bg-white border-b border-slate-200 py-4 px-6 shadow-sm sticky top-0 z-10">
-        <div className="max-w-5xl mx-auto flex items-center justify-between">
+    <div className="min-h-screen bg-slate-100/60 text-slate-800 antialiased py-6 px-4 sm:px-6">
+      {/* Top Header Card */}
+      <div className="max-w-4xl mx-auto mb-6">
+        <header className="bg-white rounded-2xl shadow-xs border border-slate-200/80 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🥗</span>
             <div>
-              <h1 className="text-xl font-extrabold text-slate-900 tracking-tight">The Legendary Lock-In</h1>
+              <h1 className="text-xl font-black text-slate-900 tracking-tight">The Legendary Lock-In</h1>
               <p className="text-xs text-slate-500 font-medium">Daily Macro &amp; Calorie Tracker</p>
             </div>
           </div>
-          <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200 px-3 py-1.5 rounded-full font-semibold">
+          <div className="text-xs bg-amber-50 text-amber-800 border border-amber-200/80 px-3.5 py-1.5 rounded-full font-bold">
             v1 Single-User
           </div>
-        </div>
-      </header>
+        </header>
+      </div>
 
-      {/* Main Container */}
-      <main className="max-w-5xl mx-auto p-4 sm:p-6 space-y-6">
+      {/* Main Content Area */}
+      <main className="max-w-4xl mx-auto space-y-6">
         {loading ? (
-          <div className="text-center py-20 text-slate-400">Loading your diet tracker...</div>
+          <div className="text-center py-24 text-slate-400 font-medium">Loading diet tracker...</div>
         ) : (
           <>
             {/* Dual-Axis Macro Graph (Overlaid Calories & Protein) */}
             <DualAxisMacroChart data={timeseriesData} />
 
-            {/* Daily Logging View (Entries table, totals, quick add) */}
+            {/* Daily Logging View */}
             <DayLogView
               currentDate={currentDate}
               onDateChange={setCurrentDate}
@@ -128,7 +127,7 @@ export default function App() {
               onDeleteEntry={handleDeleteEntry}
             />
 
-            {/* Template Manager */}
+            {/* Saved Templates Drawer / Manager */}
             <TemplateManager
               templates={templates}
               onCreateTemplate={handleCreateTemplate}
