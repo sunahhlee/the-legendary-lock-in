@@ -54,6 +54,31 @@ class DailyLogResponse(DailyLogBase):
     entries: List[MealEntryResponse] = []
     total_calories: float = 0.0
     total_protein: float = 0.0
+    calorie_goal: Optional[float] = None
+    protein_goal: Optional[float] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# User Macro Goals Schemas
+# ==========================================
+
+class UserGoalBase(BaseModel):
+    calorie_goal: float = Field(..., gt=0.0, description="Target daily calories (kcal)")
+    protein_goal: float = Field(..., ge=0.0, description="Target daily protein (g)")
+    start_date: date_type = Field(..., description="Date from which this goal applies")
+    end_date: Optional[date_type] = Field(default=None, description="Optional date this goal spanned until")
+
+
+class UserGoalCreate(UserGoalBase):
+    pass
+
+
+class UserGoalResponse(UserGoalBase):
+    id: UUID
+    user_id: UUID
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
@@ -91,6 +116,8 @@ class DailyMacroPoint(BaseModel):
     total_calories: float
     total_protein: float
     entry_count: int
+    calorie_goal: Optional[float] = None
+    protein_goal: Optional[float] = None
 
 
 class TimeseriesResponse(BaseModel):

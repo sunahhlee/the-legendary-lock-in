@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.db import get_db
 from app.config import settings
-from app.models import DailyLog, MealEntry, FoodTemplate
+from app.models import DailyLog, MealEntry, FoodTemplate, UserGoal, User
 from app.schemas import (
     DailyLogResponse,
     MealEntryCreate,
@@ -15,16 +15,103 @@ from app.schemas import (
     FoodTemplateCreate,
     FoodTemplateResponse,
     TimeseriesResponse,
+    UserGoalCreate,
+    UserGoalResponse,
 )
 from app.crud import (
     get_or_create_daily_log,
     build_daily_log_response,
     get_timeseries_analytics,
+    get_goal_for_date,
 )
 
 router = APIRouter(prefix="/api", tags=["Diet Tracker"])
 
 CURRENT_USER_ID = UUID(settings.DEFAULT_USER_ID)
+
+
+# ==========================================
+# User Goals Endpoints
+# ==========================================
+
+@router.get("/users/{user_id}/goals", response_model=List[UserGoalResponse])
+def get_user_goals(user_id: UUID, db: Session = Depends(get_db)):
+    """Retrieve historical and active macro goals for a user."""
+    goals = (
+        db.query(UserGoal)
+        .filter(UserGoal.user_id == user_id)
+        .order_by(UserGoal.start_date.desc(), UserGoal.created_at.desc())
+        .all()
+    )
+    return [
+        UserGoalResponse(
+            id=g.id,
+            user_id=g.user_id,
+            calorie_goal=float(g.calorie_goal),
+            protein_goal=float(g.protein_goal),
+            start_date=g.start_date,
+            end_date=g.end_date,
+            created_at=g.created_at,
+        )
+        for g in goals
+    ]
+
+
+@router.post("/users/{user_id}/goals", response_model=UserGoalResponse)
+def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depends(get_db)):
+    """Create or update a macro goal object spanning specified dates."""
+    # Ensure user exists
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        user = User(id=user_id, email=f"user-{str(user_id)[:8]}@legendarylockin.local")
+        db.add(user)
+        db.flush()
+
+    # If new goal has no end_date, close any previous open goal starting before this one
+    if goal_in.end_date is None:
+        previous_open = (
+            db.query(UserGoal)
+            .filter(
+                UserGoal.user_id == user_id,
+                UserGoal.end_date.is_(None),
+                UserGoal.start_date < goal_in.start_date,
+            )
+            .all()
+        )
+        for p in previous_open:
+            p.end_date = goal_in.start_date
+
+    goal = UserGoal(
+        user_id=user_id,
+        calorie_goal=goal_in.calorie_goal,
+        protein_goal=goal_in.protein_goal,
+        start_date=goal_in.start_date,
+        end_date=goal_in.end_date,
+    )
+    db.add(goal)
+    db.commit()
+    db.refresh(goal)
+
+    return UserGoalResponse(
+        id=goal.id,
+        user_id=goal.user_id,
+        calorie_goal=float(goal.calorie_goal),
+        protein_goal=float(goal.protein_goal),
+        start_date=goal.start_date,
+        end_date=goal.end_date,
+        created_at=goal.created_at,
+    )
+
+
+@router.delete("/goals/{goal_id}")
+def delete_user_goal(goal_id: UUID, db: Session = Depends(get_db)):
+    """Delete a macro goal record."""
+    goal = db.query(UserGoal).filter(UserGoal.id == goal_id).first()
+    if not goal:
+        raise HTTPException(status_code=404, detail="Goal not found")
+    db.delete(goal)
+    db.commit()
+    return {"message": "Goal deleted successfully", "id": str(goal_id)}
 
 
 # ==========================================
@@ -45,14 +132,14 @@ def get_daily_logs(
         query = query.filter(DailyLog.date <= end_date)
 
     logs = query.order_by(DailyLog.date.desc()).all()
-    return [build_daily_log_response(log) for log in logs]
+    return [build_daily_log_response(log, db) for log in logs]
 
 
 @router.get("/logs/{log_date}", response_model=DailyLogResponse)
 def get_daily_log_by_date(log_date: date_type, db: Session = Depends(get_db)):
     """Fetch log for a specific date, creating it if not already present."""
     log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
-    return build_daily_log_response(log)
+    return build_daily_log_response(log, db)
 
 
 @router.post("/logs/{log_date}/entries", response_model=DailyLogResponse)
@@ -91,7 +178,7 @@ def add_meal_entry(
     db.commit()
     db.refresh(log)
 
-    return build_daily_log_response(log)
+    return build_daily_log_response(log, db)
 
 
 @router.put("/entries/{entry_id}", response_model=MealEntryResponse)

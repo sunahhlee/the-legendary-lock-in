@@ -1,4 +1,4 @@
-import { DailyLog, MealEntry, FoodTemplate, TimeseriesResponse } from './types';
+import { DailyLog, MealEntry, FoodTemplate, TimeseriesResponse, UserGoal } from './types';
 
 export const api = {
   async getDailyLog(date: string): Promise<DailyLog> {
@@ -40,8 +40,13 @@ export const api = {
     return res.json();
   },
 
-  async getTimeseries(): Promise<TimeseriesResponse> {
-    const res = await fetch('/api/analytics/timeseries');
+  async getTimeseries(startDate?: string, endDate?: string): Promise<TimeseriesResponse> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`/api/analytics/timeseries${qs}`);
     if (!res.ok) throw new Error('Failed to fetch timeseries analytics');
     return res.json();
   },
@@ -70,5 +75,30 @@ export const api = {
   async deleteTemplate(id: string): Promise<void> {
     const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
     if (!res.ok) throw new Error('Failed to delete template');
+  },
+
+  // User Goals
+  async getUserGoals(userId: string): Promise<UserGoal[]> {
+    const res = await fetch(`/api/users/${userId}/goals`);
+    if (!res.ok) throw new Error('Failed to fetch user goals');
+    return res.json();
+  },
+
+  async createUserGoal(
+    userId: string,
+    goal: { calorie_goal: number; protein_goal: number; start_date: string; end_date?: string | null }
+  ): Promise<UserGoal> {
+    const res = await fetch(`/api/users/${userId}/goals`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(goal),
+    });
+    if (!res.ok) throw new Error('Failed to create user goal');
+    return res.json();
+  },
+
+  async deleteUserGoal(goalId: string): Promise<void> {
+    const res = await fetch(`/api/goals/${goalId}`, { method: 'DELETE' });
+    if (!res.ok) throw new Error('Failed to delete goal');
   },
 };
