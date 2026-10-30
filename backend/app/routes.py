@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.config import settings
+from app.auth import get_current_user_id
 from app.models import DailyLog, MealEntry, FoodTemplate, UserGoal, User
 from app.schemas import (
     DailyLogResponse,
@@ -20,17 +20,67 @@ from app.schemas import (
     TimeseriesResponse,
     UserGoalCreate,
     UserGoalResponse,
+    UserResponse,
+    UserUpdate,
 )
 from app.crud import (
     get_or_create_daily_log,
     build_daily_log_response,
     get_timeseries_analytics,
-    get_goal_for_date,
 )
 
 router = APIRouter(prefix="/api", tags=["Diet Tracker"])
 
-CURRENT_USER_ID = UUID(settings.DEFAULT_USER_ID)
+
+# ==========================================
+# Current User Profile Endpoints
+# ==========================================
+
+@router.get("/me", response_model=UserResponse)
+def get_me(
+    email: Optional[str] = Query(None),
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Return current user profile, creating the row on first login."""
+    user_id = UUID(user_id_str)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        if not email:
+            raise HTTPException(status_code=400, detail="email query param required for first login")
+        user = User(id=user_id, email=email)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        created_at=user.created_at,
+    )
+
+
+@router.put("/me", response_model=UserResponse)
+def update_me(
+    update: UserUpdate,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Update the current user's profile (username)."""
+    user_id = UUID(user_id_str)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if update.username is not None:
+        user.username = update.username
+    db.commit()
+    db.refresh(user)
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        created_at=user.created_at,
+    )
 
 
 # ==========================================
@@ -53,11 +103,18 @@ def create_user(db: Session = Depends(get_db)):
 # ==========================================
 
 @router.get("/users/{user_id}/goals", response_model=List[UserGoalResponse])
-def get_user_goals(user_id: UUID, db: Session = Depends(get_db)):
-    """Retrieve historical and active macro goals for a user."""
+def get_user_goals(
+    user_id: UUID,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Retrieve historical and active macro goals for the authenticated user."""
+    auth_id = UUID(user_id_str)
+    if user_id != auth_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
     goals = (
         db.query(UserGoal)
-        .filter(UserGoal.user_id == user_id)
+        .filter(UserGoal.user_id == auth_id)
         .order_by(UserGoal.start_date.desc(), UserGoal.created_at.desc())
         .all()
     )
@@ -77,21 +134,26 @@ def get_user_goals(user_id: UUID, db: Session = Depends(get_db)):
 
 
 @router.post("/users/{user_id}/goals", response_model=UserGoalResponse)
-def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depends(get_db)):
+def create_user_goal(
+    user_id: UUID,
+    goal_in: UserGoalCreate,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     """Create or update a macro goal object spanning specified dates."""
-    # Ensure user exists
-    user = db.query(User).filter(User.id == user_id).first()
-    if not user:
-        user = User(id=user_id, email=f"user-{user_id}@legendarylockin.local")
-        db.add(user)
-        db.flush()
+    auth_id = UUID(user_id_str)
+    if user_id != auth_id:
+        raise HTTPException(status_code=403, detail="Forbidden")
 
-    # If new goal has no end_date, close any previous open goal starting before this one
+    user = db.query(User).filter(User.id == auth_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
     if goal_in.end_date is None:
         previous_open = (
             db.query(UserGoal)
             .filter(
-                UserGoal.user_id == user_id,
+                UserGoal.user_id == auth_id,
                 UserGoal.end_date.is_(None),
                 UserGoal.start_date < goal_in.start_date,
             )
@@ -101,7 +163,7 @@ def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depen
             p.end_date = goal_in.start_date
 
     goal = UserGoal(
-        user_id=user_id,
+        user_id=auth_id,
         calorie_goal=goal_in.calorie_goal,
         protein_goal=goal_in.protein_goal,
         start_date=goal_in.start_date,
@@ -125,9 +187,14 @@ def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depen
 
 
 @router.delete("/goals/{goal_id}")
-def delete_user_goal(goal_id: UUID, db: Session = Depends(get_db)):
-    """Delete a macro goal record."""
-    goal = db.query(UserGoal).filter(UserGoal.id == goal_id).first()
+def delete_user_goal(
+    goal_id: UUID,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Delete a macro goal record (only owner can delete)."""
+    auth_id = UUID(user_id_str)
+    goal = db.query(UserGoal).filter(UserGoal.id == goal_id, UserGoal.user_id == auth_id).first()
     if not goal:
         raise HTTPException(status_code=404, detail="Goal not found")
     db.delete(goal)
@@ -141,25 +208,31 @@ def delete_user_goal(goal_id: UUID, db: Session = Depends(get_db)):
 
 @router.get("/logs", response_model=List[DailyLogResponse])
 def get_daily_logs(
-    start_date: Optional[date_type] = Query(None, description="Start date (YYYY-MM-DD)"),
-    end_date: Optional[date_type] = Query(None, description="End date (YYYY-MM-DD)"),
+    start_date: Optional[date_type] = Query(None),
+    end_date: Optional[date_type] = Query(None),
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """Retrieve daily logs and food entries for a date range."""
-    query = db.query(DailyLog).filter(DailyLog.user_id == CURRENT_USER_ID)
+    """Retrieve daily logs for a date range."""
+    auth_id = UUID(user_id_str)
+    query = db.query(DailyLog).filter(DailyLog.user_id == auth_id)
     if start_date:
         query = query.filter(DailyLog.date >= start_date)
     if end_date:
         query = query.filter(DailyLog.date <= end_date)
-
     logs = query.order_by(DailyLog.date.desc()).all()
     return [build_daily_log_response(log, db) for log in logs]
 
 
 @router.get("/logs/{log_date}", response_model=DailyLogResponse)
-def get_daily_log_by_date(log_date: date_type, db: Session = Depends(get_db)):
+def get_daily_log_by_date(
+    log_date: date_type,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     """Fetch log for a specific date, creating it if not already present."""
-    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    auth_id = UUID(user_id_str)
+    log = get_or_create_daily_log(db, auth_id, log_date)
     return build_daily_log_response(log, db)
 
 
@@ -204,18 +277,19 @@ def update_energy_journal(
 def add_meal_entry(
     log_date: date_type,
     entry_in: MealEntryCreate,
-    save_as_template: bool = Query(False, description="Optionally save this entry as a reusable food template"),
+    save_as_template: bool = Query(False),
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """Log an item for a given date with calories and protein values."""
-    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    """Log an item for a given date."""
+    auth_id = UUID(user_id_str)
+    log = get_or_create_daily_log(db, auth_id, log_date)
 
     template_id = entry_in.template_id
 
-    # If requested to save as reusable template
     if save_as_template:
         template = FoodTemplate(
-            user_id=CURRENT_USER_ID,
+            user_id=auth_id,
             name=entry_in.name,
             default_calories=entry_in.calories,
             default_protein=entry_in.protein,
@@ -245,10 +319,17 @@ def add_meal_entry(
 def update_meal_entry(
     entry_id: UUID,
     entry_update: MealEntryUpdate,
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """Update an existing logged item."""
-    entry = db.query(MealEntry).filter(MealEntry.id == entry_id).first()
+    """Update an existing logged item (owner only)."""
+    auth_id = UUID(user_id_str)
+    entry = (
+        db.query(MealEntry)
+        .join(DailyLog, MealEntry.daily_log_id == DailyLog.id)
+        .filter(MealEntry.id == entry_id, DailyLog.user_id == auth_id)
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Meal entry not found")
 
@@ -280,9 +361,19 @@ def update_meal_entry(
 
 
 @router.delete("/entries/{entry_id}")
-def delete_meal_entry(entry_id: UUID, db: Session = Depends(get_db)):
-    """Delete a logged food item."""
-    entry = db.query(MealEntry).filter(MealEntry.id == entry_id).first()
+def delete_meal_entry(
+    entry_id: UUID,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Delete a logged food item (owner only)."""
+    auth_id = UUID(user_id_str)
+    entry = (
+        db.query(MealEntry)
+        .join(DailyLog, MealEntry.daily_log_id == DailyLog.id)
+        .filter(MealEntry.id == entry_id, DailyLog.user_id == auth_id)
+        .first()
+    )
     if not entry:
         raise HTTPException(status_code=404, detail="Meal entry not found")
 
@@ -292,17 +383,19 @@ def delete_meal_entry(entry_id: UUID, db: Session = Depends(get_db)):
 
 
 # ==========================================
-# Timeseries Analytics (Dual-Axis Chart Data)
+# Timeseries Analytics
 # ==========================================
 
 @router.get("/analytics/timeseries", response_model=TimeseriesResponse)
 def get_analytics(
     start_date: Optional[date_type] = Query(None),
     end_date: Optional[date_type] = Query(None),
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """Get aggregated daily calories and protein for timeseries visualization."""
-    return get_timeseries_analytics(db, CURRENT_USER_ID, start_date, end_date)
+    auth_id = UUID(user_id_str)
+    return get_timeseries_analytics(db, auth_id, start_date, end_date)
 
 
 # ==========================================
@@ -310,11 +403,15 @@ def get_analytics(
 # ==========================================
 
 @router.get("/templates", response_model=List[FoodTemplateResponse])
-def get_food_templates(db: Session = Depends(get_db)):
-    """List all saved food templates for rapid logging."""
+def get_food_templates(
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """List all saved food templates for the authenticated user."""
+    auth_id = UUID(user_id_str)
     templates = (
         db.query(FoodTemplate)
-        .filter(FoodTemplate.user_id == CURRENT_USER_ID)
+        .filter(FoodTemplate.user_id == auth_id)
         .order_by(FoodTemplate.name.asc())
         .all()
     )
@@ -336,11 +433,13 @@ def get_food_templates(db: Session = Depends(get_db)):
 @router.post("/templates", response_model=FoodTemplateResponse)
 def create_food_template(
     template_in: FoodTemplateCreate,
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """Create a new reusable food item template."""
+    auth_id = UUID(user_id_str)
     template = FoodTemplate(
-        user_id=CURRENT_USER_ID,
+        user_id=auth_id,
         name=template_in.name,
         default_calories=template_in.default_calories,
         default_protein=template_in.default_protein,
@@ -364,11 +463,16 @@ def create_food_template(
 
 
 @router.delete("/templates/{template_id}")
-def delete_food_template(template_id: UUID, db: Session = Depends(get_db)):
-    """Remove a food template without altering past logs."""
+def delete_food_template(
+    template_id: UUID,
+    user_id_str: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    """Remove a food template (owner only)."""
+    auth_id = UUID(user_id_str)
     template = (
         db.query(FoodTemplate)
-        .filter(FoodTemplate.id == template_id, FoodTemplate.user_id == CURRENT_USER_ID)
+        .filter(FoodTemplate.id == template_id, FoodTemplate.user_id == auth_id)
         .first()
     )
     if not template:
