@@ -5,6 +5,23 @@ from pydantic import BaseModel, Field, ConfigDict
 
 
 # ==========================================
+# User Schemas
+# ==========================================
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
+    username: Optional[str] = None
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class UserUpdate(BaseModel):
+    username: Optional[str] = Field(default=None, min_length=1, max_length=50)
+
+
+# ==========================================
 # Meal Entry Schemas
 # ==========================================
 
