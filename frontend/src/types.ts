@@ -14,6 +14,7 @@ export interface DailyLog {
   user_id: string;
   date: string;
   notes?: string | null;
+  energy_journal?: string | null;
   entries: MealEntry[];
   total_calories: number;
   total_protein: number;
@@ -29,6 +30,7 @@ export interface UserGoal {
   protein_goal: number;
   start_date: string;
   end_date?: string | null;
+  notes?: string | null;
   created_at: string;
 }
 

@@ -42,10 +42,17 @@ class MealEntryResponse(MealEntryBase):
 class DailyLogBase(BaseModel):
     date: date_type
     notes: Optional[str] = None
+    energy_journal: Optional[str] = Field(default=None, max_length=500)
 
 
 class DailyLogCreate(DailyLogBase):
     pass
+
+
+class EnergyJournalUpdate(BaseModel):
+    energy_journal: Optional[str] = Field(
+        default=None, max_length=500, description="Freeform note on energy levels that day"
+    )
 
 
 class DailyLogResponse(DailyLogBase):
@@ -70,6 +77,7 @@ class UserGoalBase(BaseModel):
     protein_goal: float = Field(..., ge=0.0, description="Target daily protein (g)")
     start_date: date_type = Field(..., description="Date from which this goal applies")
     end_date: Optional[date_type] = Field(default=None, description="Optional date this goal spanned until")
+    notes: Optional[str] = Field(default=None, max_length=100, description="Optional note on this goal")
 
 
 class UserGoalCreate(UserGoalBase):
@@ -79,6 +87,18 @@ class UserGoalCreate(UserGoalBase):
 class UserGoalResponse(UserGoalBase):
     id: UUID
     user_id: UUID
+    created_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# ==========================================
+# User Schemas
+# ==========================================
+
+class UserResponse(BaseModel):
+    id: UUID
+    email: str
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)

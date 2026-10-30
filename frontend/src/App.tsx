@@ -173,6 +173,20 @@ export default function App() {
     }
   };
 
+  const handleUpdateEntry = async (
+    entryId: string,
+    update: { name: string; calories: number; protein: number }
+  ) => {
+    await api.updateMealEntry(entryId, update);
+    await loadDailyLog(currentDate);
+    loadTimeseries(chartRange, customStartDate, customEndDate);
+  };
+
+  const handleSaveJournal = async (text: string) => {
+    const updatedLog = await api.updateEnergyJournal(currentDate, text);
+    setDailyLog(updatedLog);
+  };
+
   const handleDeleteEntry = async (entryId: string) => {
     await api.deleteMealEntry(entryId);
     await loadDailyLog(currentDate);
@@ -199,6 +213,7 @@ export default function App() {
     protein_goal: number;
     start_date: string;
     end_date?: string | null;
+    notes?: string | null;
   }) => {
     await api.createUserGoal(userId, goal);
     await loadUserGoals(userId);
@@ -262,7 +277,9 @@ export default function App() {
               dailyLog={dailyLog}
               templates={templates}
               onAddEntry={handleAddEntry}
+              onUpdateEntry={handleUpdateEntry}
               onDeleteEntry={handleDeleteEntry}
+              onSaveJournal={handleSaveJournal}
             />
 
             {/* Saved Templates Drawer / Manager */}

@@ -1,6 +1,6 @@
 from datetime import date as date_type
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
@@ -9,6 +9,8 @@ from app.config import settings
 from app.models import DailyLog, MealEntry, FoodTemplate, UserGoal, User
 from app.schemas import (
     DailyLogResponse,
+    EnergyJournalUpdate,
+    UserResponse,
     MealEntryCreate,
     MealEntryUpdate,
     MealEntryResponse,
@@ -28,6 +30,21 @@ from app.crud import (
 router = APIRouter(prefix="/api", tags=["Diet Tracker"])
 
 CURRENT_USER_ID = UUID(settings.DEFAULT_USER_ID)
+
+
+# ==========================================
+# Users Endpoints
+# ==========================================
+
+@router.post("/users", response_model=UserResponse)
+def create_user(db: Session = Depends(get_db)):
+    """Create a user with a randomly generated (uuid4) ID."""
+    user_id = uuid4()
+    user = User(id=user_id, email=f"user-{user_id}@legendarylockin.local")
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return user
 
 
 # ==========================================
@@ -51,6 +68,7 @@ def get_user_goals(user_id: UUID, db: Session = Depends(get_db)):
             protein_goal=float(g.protein_goal),
             start_date=g.start_date,
             end_date=g.end_date,
+            notes=g.notes,
             created_at=g.created_at,
         )
         for g in goals
@@ -63,7 +81,7 @@ def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depen
     # Ensure user exists
     user = db.query(User).filter(User.id == user_id).first()
     if not user:
-        user = User(id=user_id, email=f"user-{str(user_id)[:8]}@legendarylockin.local")
+        user = User(id=user_id, email=f"user-{user_id}@legendarylockin.local")
         db.add(user)
         db.flush()
 
@@ -87,6 +105,7 @@ def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depen
         protein_goal=goal_in.protein_goal,
         start_date=goal_in.start_date,
         end_date=goal_in.end_date,
+        notes=goal_in.notes,
     )
     db.add(goal)
     db.commit()
@@ -99,6 +118,7 @@ def create_user_goal(user_id: UUID, goal_in: UserGoalCreate, db: Session = Depen
         protein_goal=float(goal.protein_goal),
         start_date=goal.start_date,
         end_date=goal.end_date,
+        notes=goal.notes,
         created_at=goal.created_at,
     )
 
@@ -139,6 +159,21 @@ def get_daily_logs(
 def get_daily_log_by_date(log_date: date_type, db: Session = Depends(get_db)):
     """Fetch log for a specific date, creating it if not already present."""
     log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    return build_daily_log_response(log, db)
+
+
+@router.put("/logs/{log_date}/energy-journal", response_model=DailyLogResponse)
+def update_energy_journal(
+    log_date: date_type,
+    journal_in: EnergyJournalUpdate,
+    db: Session = Depends(get_db),
+):
+    """Set the freeform energy journal (max 500 chars) for a given date."""
+    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    text = journal_in.energy_journal.strip() if journal_in.energy_journal else None
+    log.energy_journal = text or None
+    db.commit()
+    db.refresh(log)
     return build_daily_log_response(log, db)
 
 

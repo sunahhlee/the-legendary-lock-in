@@ -7,6 +7,16 @@ export const api = {
     return res.json();
   },
 
+  async updateEnergyJournal(date: string, energyJournal: string): Promise<DailyLog> {
+    const res = await fetch(`/api/logs/${date}/energy-journal`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ energy_journal: energyJournal }),
+    });
+    if (!res.ok) throw new Error('Failed to save energy journal');
+    return res.json();
+  },
+
   async addMealEntry(
     date: string,
     entry: { name: string; calories: number; protein: number; template_id?: string | null },
@@ -86,7 +96,13 @@ export const api = {
 
   async createUserGoal(
     userId: string,
-    goal: { calorie_goal: number; protein_goal: number; start_date: string; end_date?: string | null }
+    goal: {
+      calorie_goal: number;
+      protein_goal: number;
+      start_date: string;
+      end_date?: string | null;
+      notes?: string | null;
+    }
   ): Promise<UserGoal> {
     const res = await fetch(`/api/users/${userId}/goals`, {
       method: 'POST',
