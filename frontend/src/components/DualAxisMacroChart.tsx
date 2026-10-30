@@ -67,13 +67,13 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
     if (isOver) {
       return (
         <svg key={`dot-${payload.date}`}>
-          <circle cx={cx} cy={cy} r={6} fill="#dc2626" stroke="#ffffff" strokeWidth={2} />
+          <circle cx={cx} cy={cy} r={6} fill="#2563eb" stroke="#ffffff" strokeWidth={2} />
         </svg>
       );
     }
 
     return (
-      <Dot key={`dot-${payload.date}`} cx={cx} cy={cy} r={4} fill="#f59e0b" stroke="#ffffff" strokeWidth={1} />
+      <Dot key={`dot-${payload.date}`} cx={cx} cy={cy} r={4} fill="#3b82f6" stroke="#ffffff" strokeWidth={1} />
     );
   };
 
@@ -150,12 +150,12 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
 
       {/* Legend & Status Indicators */}
       <div className="flex flex-wrap items-center gap-3 text-xs font-semibold mb-4">
-        <span className="flex items-center gap-1.5 text-amber-700">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block"></span>
+        <span className="flex items-center gap-1.5 text-blue-700">
+          <span className="w-2.5 h-2.5 rounded-full bg-blue-500 inline-block"></span>
           Calories (kcal)
         </span>
-        <span className="flex items-center gap-1.5 text-orange-700">
-          <span className="w-2.5 h-2.5 rounded-full bg-orange-600 inline-block"></span>
+        <span className="flex items-center gap-1.5 text-green-700">
+          <span className="w-2.5 h-2.5 rounded-full bg-green-600 inline-block"></span>
           Protein (g)
         </span>
         {hasCalorieGoal && (
@@ -195,10 +195,10 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
               <YAxis
                 yAxisId="left"
                 orientation="left"
-                stroke="#d97706"
+                stroke="#2563eb"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#fef3c7' }}
+                axisLine={{ stroke: '#dbeafe' }}
                 domain={[0, 'auto']}
                 unit=" kcal"
               />
@@ -206,10 +206,10 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
               <YAxis
                 yAxisId="right"
                 orientation="right"
-                stroke="#ea580c"
+                stroke="#16a34a"
                 fontSize={12}
                 tickLine={false}
-                axisLine={{ stroke: '#ffedd5' }}
+                axisLine={{ stroke: '#dcfce7' }}
                 domain={[0, 'auto']}
                 unit="g"
               />
@@ -283,7 +283,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                 type="monotone"
                 dataKey="total_calories"
                 name="Calories"
-                stroke="#f59e0b"
+                stroke="#3b82f6"
                 strokeWidth={3}
                 dot={renderCalorieDot}
                 activeDot={{ r: 7 }}
@@ -295,9 +295,9 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                 type="monotone"
                 dataKey="total_protein"
                 name="Protein"
-                stroke="#ea580c"
+                stroke="#16a34a"
                 strokeWidth={3}
-                dot={{ r: 4, fill: '#ea580c' }}
+                dot={{ r: 4, fill: '#16a34a', stroke: '#ffffff', strokeWidth: 1 }}
                 activeDot={{ r: 6 }}
               />
 
