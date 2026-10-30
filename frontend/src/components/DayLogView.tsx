@@ -280,7 +280,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
           <button
             type="button"
             onClick={handleJournalSave}
-            disabled={isJournalSaving || journalText === savedJournal}
+            disabled={isJournalSaving}
             className="bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
           >
             {isJournalSaving ? 'Saving...' : 'Save Journal'}
@@ -373,7 +373,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
 
             <button
               type="submit"
-              disabled={isSubmitting || !name || !calories}
+              disabled={isSubmitting}
               className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 active:bg-amber-800 disabled:opacity-50 text-white text-sm font-bold px-6 py-2.5 rounded-xl shadow-sm transition hover:shadow cursor-pointer"
             >
               {isSubmitting ? 'Logging...' : '+ Log Item'}
