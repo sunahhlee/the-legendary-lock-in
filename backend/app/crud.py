@@ -74,6 +74,7 @@ def build_daily_log_response(log: DailyLog, db: Optional[Session] = None) -> Dai
         user_id=log.user_id,
         date=log.date,
         notes=log.notes,
+        energy_journal=log.energy_journal,
         entries=entries_responses,
         total_calories=round(total_cal, 3),
         total_protein=round(total_prot, 3),

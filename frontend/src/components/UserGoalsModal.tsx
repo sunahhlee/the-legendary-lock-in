@@ -11,6 +11,7 @@ interface UserGoalsModalProps {
     protein_goal: number;
     start_date: string;
     end_date?: string | null;
+    notes?: string | null;
   }) => Promise<void>;
   onDeleteGoal: (goalId: string) => Promise<void>;
 }
@@ -23,10 +24,11 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
   onSaveGoal,
   onDeleteGoal,
 }) => {
-  const [calorieGoal, setCalorieGoal] = useState('2000');
-  const [proteinGoal, setProteinGoal] = useState('140');
+  const [calorieGoal, setCalorieGoal] = useState('');
+  const [proteinGoal, setProteinGoal] = useState('');
   const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
   const [endDate, setEndDate] = useState('');
+  const [goalNotes, setGoalNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
@@ -42,8 +44,10 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
         protein_goal: parseFloat(proteinGoal),
         start_date: startDate,
         end_date: endDate ? endDate : null,
+        notes: goalNotes.trim() ? goalNotes.trim() : null,
       });
       setEndDate('');
+      setGoalNotes('');
     } finally {
       setIsSubmitting(false);
     }
@@ -87,7 +91,7 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
                     required
                     value={calorieGoal}
                     onChange={(e) => setCalorieGoal(e.target.value)}
-                    placeholder="e.g. 2000"
+                    placeholder="1600"
                     className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -102,7 +106,7 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
                     required
                     value={proteinGoal}
                     onChange={(e) => setProteinGoal(e.target.value)}
-                    placeholder="e.g. 140"
+                    placeholder="110"
                     className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
@@ -132,6 +136,20 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
                     className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
                   />
                 </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Notes <span className="font-normal text-slate-400">(optional, {goalNotes.length}/100)</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={100}
+                  value={goalNotes}
+                  onChange={(e) => setGoalNotes(e.target.value)}
+                  placeholder="e.g. cutting phase"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
               </div>
 
               <div className="flex justify-end pt-2">
@@ -174,6 +192,7 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
                         <span className="font-medium">Span:</span> {g.start_date} →{' '}
                         {g.end_date ? g.end_date : <span className="text-emerald-600 font-semibold">Active (Ongoing)</span>}
                       </div>
+                      {g.notes && <div className="text-xs text-slate-600 mt-0.5 italic">{g.notes}</div>}
                     </div>
                     <button
                       type="button"
