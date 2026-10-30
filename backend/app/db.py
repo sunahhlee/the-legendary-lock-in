@@ -30,7 +30,7 @@ if settings.SUPABASE_DB_URL:
     
     # Strip non-standard Supabase pooler query parameters for psycopg2 / SQLAlchemy
     clean_url = (
-        f"postgresql://{parsed.username}:{parsed.password}@"
+        f"postgresql+psycopg2://{parsed.username}:{parsed.password}@"
         f"{parsed.hostname}:{parsed.port or 6543}/{parsed.path.lstrip('/')}?sslmode=require"
     )
     
