@@ -5,7 +5,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://legendary-lock-in-api.onrender.com/api/:path*"
+      "destination": "https://the-legendary-lock-in.onrender.com/api/:path*"
     }
   ]
 }

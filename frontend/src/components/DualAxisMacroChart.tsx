@@ -3,6 +3,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Line,
+  Area,
   XAxis,
   YAxis,
   Tooltip,
@@ -50,6 +51,9 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
     ...d,
     displayDate: d.date.slice(5), // 'YYYY-MM-DD' -> 'MM-DD'
     isOverCalorieGoal: d.calorie_goal != null && d.total_calories > d.calorie_goal,
+    // Stacked area helpers: transparent base up to the limit, red band for the surplus above it
+    surplusBase: d.calorie_goal != null ? Math.min(d.total_calories, d.calorie_goal) : null,
+    surplus: d.calorie_goal != null ? Math.max(0, d.total_calories - d.calorie_goal) : null,
   }));
 
   const hasCalorieGoal = (data || []).some((d) => d.calorie_goal != null);
@@ -161,8 +165,8 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
               Calorie Limit
             </span>
             <span className="flex items-center gap-1.5 text-red-600">
-              <span className="w-2.5 h-2.5 rounded-full bg-red-600 inline-block"></span>
-              Over Limit
+              <span className="w-3 h-3 rounded-sm bg-red-500/30 border border-red-500 inline-block"></span>
+              Calorie Surplus
             </span>
           </>
         )}
@@ -173,7 +177,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
           No logged days found within the selected date range.
         </div>
       ) : (
-        <div style={{ width: '100%', height: 340 }}>
+        <div style={{ width: '100%', height: 520 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={formattedData}
@@ -227,13 +231,51 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                       : '';
                     return [`${Number(value).toLocaleString()} kcal${suffix}`, name];
                   }
-                  if (name === 'Protein') return [`${value}g`, name];
+                  if (name === 'Protein') {
+                    const proteinGoal = item.payload.protein_goal;
+                    const suffix =
+                      proteinGoal != null && value < proteinGoal
+                        ? ` (⚠️ ${Math.round((proteinGoal - value) * 10) / 10}g short of ${proteinGoal}g goal)`
+                        : '';
+                    return [`${value}g${suffix}`, name];
+                  }
                   if (name === 'Calorie Limit') return [`${Number(value).toLocaleString()} kcal`, name];
                   return [value, name];
                 }}
                 labelFormatter={(label) => `Date: ${label}`}
               />
               <Legend verticalAlign="top" height={36} />
+
+              {/* Calorie surplus band: shaded red between the limit and the calorie line */}
+              {hasCalorieGoal && (
+                <>
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="surplusBase"
+                    stackId="surplus"
+                    stroke="none"
+                    fill="transparent"
+                    legendType="none"
+                    tooltipType="none"
+                    activeDot={false}
+                    isAnimationActive={false}
+                  />
+                  <Area
+                    yAxisId="left"
+                    type="monotone"
+                    dataKey="surplus"
+                    stackId="surplus"
+                    stroke="none"
+                    fill="#ef4444"
+                    fillOpacity={0.3}
+                    legendType="none"
+                    tooltipType="none"
+                    activeDot={false}
+                    isAnimationActive={false}
+                  />
+                </>
+              )}
 
               {/* Total Calories Line */}
               <Line

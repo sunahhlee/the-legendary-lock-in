@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
-import { DailyLog, FoodTemplate } from '../types';
+import React, { useEffect, useState } from 'react';
+import { DailyLog, FoodTemplate, MealEntry } from '../types';
 import { toLocalDateString } from '../dateUtils';
+
+const JOURNAL_MAX_LENGTH = 500;
 
 interface DayLogViewProps {
   currentDate: string;
@@ -11,7 +13,12 @@ interface DayLogViewProps {
     entry: { name: string; calories: number; protein: number; template_id?: string | null },
     saveTemplate: boolean
   ) => Promise<void>;
+  onUpdateEntry: (
+    entryId: string,
+    update: { name: string; calories: number; protein: number }
+  ) => Promise<void>;
   onDeleteEntry: (entryId: string) => Promise<void>;
+  onSaveJournal: (text: string) => Promise<void>;
 }
 
 export const DayLogView: React.FC<DayLogViewProps> = ({
@@ -20,7 +27,9 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   dailyLog,
   templates,
   onAddEntry,
+  onUpdateEntry,
   onDeleteEntry,
+  onSaveJournal,
 }) => {
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
@@ -28,6 +37,75 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Edit modal state
+  const [editingEntry, setEditingEntry] = useState<MealEntry | null>(null);
+  const [editName, setEditName] = useState('');
+  const [editCalories, setEditCalories] = useState('');
+  const [editProtein, setEditProtein] = useState('');
+  const [isEditSaving, setIsEditSaving] = useState(false);
+
+  // Energy journal state (resynced whenever the viewed day or saved text changes)
+  const savedJournal = dailyLog?.energy_journal ?? '';
+  const [journalText, setJournalText] = useState(savedJournal);
+  const [isJournalSaving, setIsJournalSaving] = useState(false);
+  useEffect(() => {
+    setJournalText(savedJournal);
+  }, [dailyLog?.id, savedJournal]);
+
+  const openEdit = (entry: MealEntry) => {
+    setEditingEntry(entry);
+    setEditName(entry.name);
+    setEditCalories(String(entry.calories));
+    setEditProtein(String(entry.protein));
+  };
+
+  const closeEdit = () => setEditingEntry(null);
+
+  const handleEditSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEntry || !editName.trim() || editCalories === '') return;
+
+    setIsEditSaving(true);
+    try {
+      await onUpdateEntry(editingEntry.id, {
+        name: editName.trim(),
+        calories: parseFloat(editCalories),
+        protein: editProtein ? parseFloat(editProtein) : 0.0,
+      });
+      closeEdit();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
+
+  const handleEditDelete = async () => {
+    if (!editingEntry) return;
+    if (!window.confirm(`Delete "${editingEntry.name}"?`)) return;
+
+    setIsEditSaving(true);
+    try {
+      await onDeleteEntry(editingEntry.id);
+      closeEdit();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsEditSaving(false);
+    }
+  };
+
+  const handleJournalSave = async () => {
+    setIsJournalSaving(true);
+    try {
+      await onSaveJournal(journalText);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsJournalSaving(false);
+    }
+  };
 
   const handleSelectTemplate = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const templateId = e.target.value;
@@ -168,10 +246,10 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
                     <td className="py-3.5 px-4 text-right whitespace-nowrap">
                       <button
                         type="button"
-                        onClick={() => onDeleteEntry(entry.id)}
-                        className="text-xs font-semibold text-red-600 hover:text-red-700 px-2.5 py-1 rounded-md hover:bg-red-50 border border-transparent hover:border-red-100 transition"
+                        onClick={() => openEdit(entry)}
+                        className="text-xs font-semibold text-slate-600 hover:text-slate-900 px-2.5 py-1 rounded-md hover:bg-slate-100 border border-transparent hover:border-slate-200 transition cursor-pointer"
                       >
-                        Delete
+                        Edit
                       </button>
                     </td>
                   </tr>
@@ -180,6 +258,34 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
             </table>
           </div>
         )}
+      </div>
+
+      {/* Energy Journal Section */}
+      <div className="mb-8">
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-base font-bold text-slate-800 tracking-tight">Energy Journal</h3>
+          <span className="text-xs text-slate-400">
+            {journalText.length}/{JOURNAL_MAX_LENGTH}
+          </span>
+        </div>
+        <textarea
+          value={journalText}
+          onChange={(e) => setJournalText(e.target.value)}
+          maxLength={JOURNAL_MAX_LENGTH}
+          rows={4}
+          placeholder="How did you feel energy-wise today?"
+          className="w-full text-sm border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs resize-y"
+        />
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={handleJournalSave}
+            disabled={isJournalSaving || journalText === savedJournal}
+            className="bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+          >
+            {isJournalSaving ? 'Saving...' : 'Save Journal'}
+          </button>
+        </div>
       </div>
 
       {/* Add Food Item Section */}
@@ -275,6 +381,89 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
           </div>
         </form>
       </div>
+
+      {/* Edit Item Modal (Delete lives here) */}
+      {editingEntry && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-2xs p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-6 w-full max-w-md text-left">
+            <div className="flex items-center justify-between mb-4 pb-2 border-b border-slate-100">
+              <h4 className="text-sm font-bold text-slate-800">Edit Logged Item</h4>
+              <button
+                type="button"
+                onClick={closeEdit}
+                className="text-slate-400 hover:text-slate-600 font-bold text-lg px-2 rounded-lg"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleEditSave} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 mb-1">Food / Dish Description</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  required
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Calories (kcal)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={editCalories}
+                    onChange={(e) => setEditCalories(e.target.value)}
+                    required
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">Protein (g)</label>
+                  <input
+                    type="number"
+                    step="any"
+                    min="0"
+                    value={editProtein}
+                    onChange={(e) => setEditProtein(e.target.value)}
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={handleEditDelete}
+                  disabled={isEditSaving}
+                  className="text-xs font-semibold text-red-600 hover:text-red-700 hover:bg-red-50 px-3.5 py-2 rounded-lg border border-red-200 transition cursor-pointer disabled:opacity-50"
+                >
+                  Delete
+                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={closeEdit}
+                    className="text-xs font-semibold text-slate-600 hover:bg-slate-100 px-3.5 py-2 rounded-lg"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isEditSaving || !editName.trim() || editCalories === ''}
+                    className="bg-amber-600 hover:bg-amber-700 disabled:opacity-50 text-white font-bold text-xs uppercase tracking-wider px-4 py-2 rounded-lg shadow-2xs transition cursor-pointer"
+                  >
+                    {isEditSaving ? 'Saving...' : 'Save'}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
