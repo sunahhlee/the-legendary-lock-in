@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: legendary-lock-in-api
+    name: the-legendary-lock-in
     runtime: python
     plan: free
     rootDir: backend
