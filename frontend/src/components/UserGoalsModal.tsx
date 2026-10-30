@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { UserGoal } from '../types';
+import { toLocalDateString } from '../dateUtils';
 
 interface UserGoalsModalProps {
   userId: string;
@@ -26,7 +27,7 @@ export const UserGoalsModal: React.FC<UserGoalsModalProps> = ({
 }) => {
   const [calorieGoal, setCalorieGoal] = useState('');
   const [proteinGoal, setProteinGoal] = useState('');
-  const [startDate, setStartDate] = useState(new Date().toISOString().slice(0, 10));
+  const [startDate, setStartDate] = useState(toLocalDateString());
   const [endDate, setEndDate] = useState('');
   const [goalNotes, setGoalNotes] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

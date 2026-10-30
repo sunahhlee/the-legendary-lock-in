@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { DailyLog, FoodTemplate, MealEntry } from '../types';
+import { toLocalDateString } from '../dateUtils';
 
 const JOURNAL_MAX_LENGTH = 500;
 
@@ -122,13 +123,13 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   const handlePrevDay = () => {
     const d = new Date(currentDate + 'T00:00:00');
     d.setDate(d.getDate() - 1);
-    onDateChange(d.toISOString().slice(0, 10));
+    onDateChange(toLocalDateString(d));
   };
 
   const handleNextDay = () => {
     const d = new Date(currentDate + 'T00:00:00');
     d.setDate(d.getDate() + 1);
-    onDateChange(d.toISOString().slice(0, 10));
+    onDateChange(toLocalDateString(d));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
