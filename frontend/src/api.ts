@@ -1,6 +1,18 @@
-import { DailyLog, MealEntry, FoodTemplate, TimeseriesResponse, UserGoal } from './types';
+import { DailyLog, MealEntry, FoodTemplate, JournalEntry, TimeseriesResponse, UserGoal } from './types';
 
 export const api = {
+  async getJournalEntries(startDate?: string, endDate?: string, limit?: number): Promise<JournalEntry[]> {
+    const params = new URLSearchParams();
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    if (limit) params.set('limit', String(limit));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(`/api/journal${qs}`);
+    if (!res.ok) throw new Error('Failed to fetch journal entries');
+    return res.json();
+  },
+
   async getDailyLog(date: string): Promise<DailyLog> {
     const res = await fetch(`/api/logs/${date}`);
     if (!res.ok) throw new Error(`Failed to fetch daily log for ${date}`);

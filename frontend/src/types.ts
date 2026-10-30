@@ -23,6 +23,11 @@ export interface DailyLog {
   created_at: string;
 }
 
+export interface JournalEntry {
+  date: string;
+  energy_journal: string;
+}
+
 export interface UserGoal {
   id: string;
   user_id: string;

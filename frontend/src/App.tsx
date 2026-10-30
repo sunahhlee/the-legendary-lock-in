@@ -5,6 +5,7 @@ import { DayLogView } from './components/DayLogView';
 import { DualAxisMacroChart, RangeOption } from './components/DualAxisMacroChart';
 import { TemplateManager } from './components/TemplateManager';
 import { UserGoalsModal } from './components/UserGoalsModal';
+import { JournalSidebar } from './components/JournalSidebar';
 
 const DEFAULT_USER_ID = '00000000-0000-0000-0000-000000000001';
 
@@ -32,6 +33,7 @@ export default function App() {
   const [templates, setTemplates] = useState<FoodTemplate[]>([]);
   const [timeseriesData, setTimeseriesData] = useState<DailyMacroPoint[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
+  const [journalRefreshKey, setJournalRefreshKey] = useState<number>(0);
 
   // Sync route / path if URL changes (e.g. /users/:id or /:id)
   useEffect(() => {
@@ -185,6 +187,7 @@ export default function App() {
   const handleSaveJournal = async (text: string) => {
     const updatedLog = await api.updateEnergyJournal(currentDate, text);
     setDailyLog(updatedLog);
+    setJournalRefreshKey((k) => k + 1);
   };
 
   const handleDeleteEntry = async (entryId: string) => {
@@ -230,8 +233,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100/60 text-slate-800 antialiased py-6 px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+      <div className="w-full min-w-0 flex-1">
       {/* Top Header Card */}
-      <div className="max-w-4xl mx-auto mb-6">
+      <div className="mb-6">
         <header className="bg-white rounded-2xl shadow-xs border border-slate-200/80 px-6 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">🥗</span>
@@ -256,7 +261,7 @@ export default function App() {
       </div>
 
       {/* Main Content Area */}
-      <main className="max-w-4xl mx-auto space-y-6">
+      <main className="space-y-6">
         {loading ? (
           <div className="text-center py-24 text-slate-400 font-medium">Loading diet tracker...</div>
         ) : (
@@ -291,6 +296,13 @@ export default function App() {
           </>
         )}
       </main>
+      </div>
+
+      {/* Journal Sidebar: last 10 entries, filterable by date range */}
+      <div className="w-full lg:w-80 shrink-0">
+        <JournalSidebar refreshKey={journalRefreshKey} onSelectDate={setCurrentDate} />
+      </div>
+      </div>
 
       {/* User Goals Modal */}
       <UserGoalsModal

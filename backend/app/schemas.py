@@ -49,6 +49,11 @@ class DailyLogCreate(DailyLogBase):
     pass
 
 
+class JournalEntryResponse(BaseModel):
+    date: date_type
+    energy_journal: str
+
+
 class EnergyJournalUpdate(BaseModel):
     energy_journal: Optional[str] = Field(
         default=None, max_length=500, description="Freeform note on energy levels that day"

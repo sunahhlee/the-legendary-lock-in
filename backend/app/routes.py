@@ -10,6 +10,7 @@ from app.models import DailyLog, MealEntry, FoodTemplate, UserGoal, User
 from app.schemas import (
     DailyLogResponse,
     EnergyJournalUpdate,
+    JournalEntryResponse,
     UserResponse,
     MealEntryCreate,
     MealEntryUpdate,
@@ -160,6 +161,28 @@ def get_daily_log_by_date(log_date: date_type, db: Session = Depends(get_db)):
     """Fetch log for a specific date, creating it if not already present."""
     log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
     return build_daily_log_response(log, db)
+
+
+@router.get("/journal", response_model=List[JournalEntryResponse])
+def list_journal_entries(
+    start_date: Optional[date_type] = Query(None, description="Start date (YYYY-MM-DD)"),
+    end_date: Optional[date_type] = Query(None, description="End date (YYYY-MM-DD)"),
+    limit: Optional[int] = Query(10, ge=1, le=1000, description="Max entries, newest first"),
+    db: Session = Depends(get_db),
+):
+    """List non-empty energy journal entries, newest first. Defaults to the last 10."""
+    query = db.query(DailyLog).filter(
+        DailyLog.user_id == CURRENT_USER_ID,
+        DailyLog.energy_journal.isnot(None),
+        DailyLog.energy_journal != "",
+    )
+    if start_date:
+        query = query.filter(DailyLog.date >= start_date)
+    if end_date:
+        query = query.filter(DailyLog.date <= end_date)
+
+    logs = query.order_by(DailyLog.date.desc()).limit(limit).all()
+    return [JournalEntryResponse(date=l.date, energy_journal=l.energy_journal) for l in logs]
 
 
 @router.put("/logs/{log_date}/energy-journal", response_model=DailyLogResponse)
