@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { api } from './api';
 import { useAuth } from './AuthContext';
+import { toLocalDateString } from './dateUtils';
 import { DailyLog, FoodTemplate, DailyMacroPoint, UserGoal } from './types';
 import { DayLogView } from './components/DayLogView';
 import { DualAxisMacroChart, RangeOption } from './components/DualAxisMacroChart';
@@ -11,21 +12,19 @@ import { LoginPage } from './components/LoginPage';
 const getDateNDaysAgo = (n: number) => {
   const d = new Date();
   d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0, 10);
+  return toLocalDateString(d);
 };
 
 export default function App() {
   const { user, loading: authLoading, signOut } = useAuth();
 
-  const [currentDate, setCurrentDate] = useState<string>(
-    new Date().toISOString().slice(0, 10)
-  );
+  const [currentDate, setCurrentDate] = useState<string>(toLocalDateString());
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState<boolean>(false);
   const [userGoals, setUserGoals] = useState<UserGoal[]>([]);
 
   const [chartRange, setChartRange] = useState<RangeOption>('7d');
   const [customStartDate, setCustomStartDate] = useState<string>(getDateNDaysAgo(14));
-  const [customEndDate, setCustomEndDate] = useState<string>(new Date().toISOString().slice(0, 10));
+  const [customEndDate, setCustomEndDate] = useState<string>(toLocalDateString());
 
   const [dailyLog, setDailyLog] = useState<DailyLog | null>(null);
   const [templates, setTemplates] = useState<FoodTemplate[]>([]);
@@ -68,7 +67,7 @@ export default function App() {
     cEnd: string = customEndDate
   ) => {
     try {
-      const today = new Date().toISOString().slice(0, 10);
+      const today = toLocalDateString();
       let start: string | undefined;
       let end: string | undefined;
 
