@@ -3,7 +3,7 @@ import {
   ResponsiveContainer,
   ComposedChart,
   Line,
-  Area,
+  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -74,6 +74,23 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
 
     return (
       <Dot key={`dot-${payload.date}`} cx={cx} cy={cy} r={4} fill="#3b82f6" stroke="#ffffff" strokeWidth={1} />
+    );
+  };
+
+  const renderLimitMarker = (props: any) => {
+    const { cx, cy, payload } = props;
+    if (cx == null || cy == null || !payload || payload.calorie_goal == null) return <g key={`limit-${props.index}`} />;
+    return (
+      <line
+        key={`limit-${payload.date}`}
+        x1={cx - 30}
+        x2={cx + 30}
+        y1={cy}
+        y2={cy}
+        stroke="#f87171"
+        strokeWidth={2}
+        strokeDasharray="5 5"
+      />
     );
   };
 
@@ -246,32 +263,28 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
               />
               <Legend verticalAlign="top" height={36} />
 
-              {/* Calorie surplus band: shaded red between the limit and the calorie line */}
+              {/* Calorie surplus bar: transparent up to the limit, red above it (works for a single day) */}
               {hasCalorieGoal && (
                 <>
-                  <Area
+                  <Bar
                     yAxisId="left"
-                    type="monotone"
                     dataKey="surplusBase"
                     stackId="surplus"
-                    stroke="none"
                     fill="transparent"
                     legendType="none"
                     tooltipType="none"
-                    activeDot={false}
+                    barSize={48}
                     isAnimationActive={false}
                   />
-                  <Area
+                  <Bar
                     yAxisId="left"
-                    type="monotone"
                     dataKey="surplus"
                     stackId="surplus"
-                    stroke="none"
                     fill="#ef4444"
                     fillOpacity={0.3}
                     legendType="none"
                     tooltipType="none"
-                    activeDot={false}
+                    barSize={48}
                     isAnimationActive={false}
                   />
                 </>
@@ -311,7 +324,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                   stroke="#f87171"
                   strokeWidth={2}
                   strokeDasharray="5 5"
-                  dot={false}
+                  dot={renderLimitMarker}
                   activeDot={false}
                   connectNulls
                 />
