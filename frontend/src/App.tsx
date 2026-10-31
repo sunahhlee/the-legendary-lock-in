@@ -203,12 +203,12 @@ export default function App() {
     category?: string;
   }) => {
     await api.createTemplate(template);
-    loadTemplates();
+    await loadTemplates();
   };
 
   const handleDeleteTemplate = async (id: string) => {
     await api.deleteTemplate(id);
-    loadTemplates();
+    await loadTemplates();
   };
 
   const handleSaveGoal = async (goal: {

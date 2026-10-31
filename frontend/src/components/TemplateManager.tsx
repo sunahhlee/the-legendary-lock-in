@@ -19,6 +19,16 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   const [category, setCategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
+  const handleDelete = async (id: string) => {
+    setDeletingId(id);
+    try {
+      await onDeleteTemplate(id);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,9 +109,9 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
             <button
               type="submit"
               disabled={isSubmitting || !name || !calories}
-              className="bg-gray-800 hover:bg-black text-white text-xs font-semibold rounded px-3 py-1.5 transition-colors"
+              className="bg-gray-800 hover:bg-black text-white text-xs font-semibold rounded px-3 py-1.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              + Save
+              {isSubmitting ? 'Saving...' : '+ Save'}
             </button>
           </form>
 
@@ -123,10 +133,11 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                     </div>
                   </div>
                   <button
-                    onClick={() => onDeleteTemplate(t.id)}
-                    className="text-gray-400 hover:text-red-600 font-bold px-1"
+                    onClick={() => handleDelete(t.id)}
+                    disabled={deletingId === t.id}
+                    className={`font-bold px-1 ${deletingId === t.id ? 'text-gray-500 text-[11px] cursor-not-allowed' : 'text-gray-400 hover:text-red-600'}`}
                   >
-                    ×
+                    {deletingId === t.id ? 'Deleting...' : '×'}
                   </button>
                 </div>
               ))}
