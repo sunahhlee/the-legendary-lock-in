@@ -209,11 +209,11 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
 
         {/* Daily Aggregates Badges */}
         <div className="flex items-center gap-4">
-          <div className="bg-blue-50/80 border border-blue-200 px-5 py-2.5 rounded-xl text-right min-w-[130px]">
-            <div className="text-[11px] font-bold text-blue-700 uppercase tracking-wider">Calories</div>
-            <div className="text-2xl font-black text-blue-950">
+          <div className="bg-orange-50/80 border border-orange-200 px-5 py-2.5 rounded-xl text-right min-w-[130px]">
+            <div className="text-[11px] font-bold text-orange-700 uppercase tracking-wider">Calories</div>
+            <div className="text-2xl font-black text-orange-950">
               {dailyLog?.total_calories ? dailyLog.total_calories.toLocaleString() : 0}{' '}
-              <span className="text-xs font-semibold text-blue-700">kcal</span>
+              <span className="text-xs font-semibold text-orange-700">kcal</span>
             </div>
           </div>
           <div className="bg-green-50/80 border border-green-200 px-5 py-2.5 rounded-xl text-right min-w-[130px]">
@@ -257,7 +257,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
                         </span>
                       )}
                     </td>
-                    <td className="py-3.5 px-4 text-right font-bold text-blue-700 whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-right font-bold text-orange-700 whitespace-nowrap">
                       {entry.calories} kcal
                     </td>
                     <td className="py-3.5 px-4 text-right font-bold text-green-700 whitespace-nowrap">
@@ -321,20 +321,6 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
               />
             </div>
 
-            {/* Optional grams: rescales calories/protein when a scalable template is selected */}
-            <div className="md:col-span-2">
-              <label className="block text-xs font-medium text-slate-500 mb-1">Grams (opt)</label>
-              <input
-                type="number"
-                step="any"
-                min="0"
-                placeholder="g"
-                value={grams}
-                onChange={(e) => handleGramsChange(e.target.value)}
-                className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
-              />
-            </div>
-
             {/* Short Calories input */}
             <div className="md:col-span-2">
               <label className="block text-xs font-medium text-slate-500 mb-1">Calories (kcal)</label>
@@ -360,6 +346,20 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
                 placeholder="g (opt)"
                 value={protein}
                 onChange={(e) => setProtein(e.target.value)}
+                className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+              />
+            </div>
+
+            {/* Optional grams: rescales calories/protein when a scalable template is selected */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Grams (opt)</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="g"
+                value={grams}
+                onChange={(e) => handleGramsChange(e.target.value)}
                 className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
