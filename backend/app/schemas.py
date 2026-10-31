@@ -13,6 +13,7 @@ class MealEntryBase(BaseModel):
     calories: float = Field(..., ge=0.0, description="Calorie amount (kcal), allows up to 3 decimals")
     protein: float = Field(default=0.0, ge=0.0, description="Protein in grams, allows up to 3 decimals")
     template_id: Optional[UUID] = Field(default=None, description="Optional reference to template")
+    grams: Optional[float] = Field(default=None, gt=0.0, description="Optional portion size in grams")
     sort_order: int = Field(default=0, ge=0)
 
 
@@ -24,6 +25,7 @@ class MealEntryUpdate(BaseModel):
     name: Optional[str] = Field(default=None, min_length=1)
     calories: Optional[float] = Field(default=None, ge=0.0)
     protein: Optional[float] = Field(default=None, ge=0.0)
+    grams: Optional[float] = Field(default=None, gt=0.0)
     sort_order: Optional[int] = Field(default=None, ge=0)
 
 
@@ -117,6 +119,9 @@ class FoodTemplateBase(BaseModel):
     name: str = Field(..., min_length=1)
     default_calories: float = Field(..., ge=0.0)
     default_protein: float = Field(default=0.0, ge=0.0)
+    default_grams: Optional[float] = Field(
+        default=None, gt=0.0, description="Grams that default calories/protein refer to; enables scaling"
+    )
     category: Optional[str] = None
 
 

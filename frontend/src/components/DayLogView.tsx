@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { DailyLog, FoodTemplate, MealEntry } from '../types';
 import { toLocalDateString } from '../dateUtils';
+import { isScalable, scaleTemplate } from '../scaling';
 
 const JOURNAL_MAX_LENGTH = 500;
 
@@ -10,7 +11,13 @@ interface DayLogViewProps {
   dailyLog: DailyLog | null;
   templates: FoodTemplate[];
   onAddEntry: (
-    entry: { name: string; calories: number; protein: number; template_id?: string | null },
+    entry: {
+      name: string;
+      calories: number;
+      protein: number;
+      grams?: number | null;
+      template_id?: string | null;
+    },
     saveTemplate: boolean
   ) => Promise<void>;
   onUpdateEntry: (
@@ -34,6 +41,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
+  const [grams, setGrams] = useState('');
   const [selectedTemplateId, setSelectedTemplateId] = useState('');
   const [saveAsTemplate, setSaveAsTemplate] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -116,7 +124,18 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
       setName(t.name);
       setCalories(String(t.default_calories));
       setProtein(String(t.default_protein));
+      setGrams(isScalable(t) ? String(t.default_grams) : '');
     }
+  };
+
+  // Changing grams rescales calories/protein, but only for a selected scalable template.
+  const handleGramsChange = (value: string) => {
+    setGrams(value);
+    const t = templates.find((tpl) => tpl.id === selectedTemplateId);
+    if (!isScalable(t)) return;
+    const scaled = scaleTemplate(t, value === '' ? null : parseFloat(value));
+    setCalories(String(scaled.calories));
+    setProtein(String(scaled.protein));
   };
 
   const handlePrevDay = () => {
@@ -142,6 +161,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
           name: name.trim(),
           calories: parseFloat(calories),
           protein: protein ? parseFloat(protein) : 0.0,
+          grams: grams ? parseFloat(grams) : null,
           template_id: selectedTemplateId || null,
         },
         saveAsTemplate
@@ -149,6 +169,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
       setName('');
       setCalories('');
       setProtein('');
+      setGrams('');
       setSelectedTemplateId('');
       setSaveAsTemplate(false);
     } catch (err) {
@@ -278,7 +299,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
                 <option value="">-- Select frequent food template --</option>
                 {templates.map((t) => (
                   <option key={t.id} value={t.id}>
-                    {t.name} ({t.default_calories} kcal, {t.default_protein}g protein)
+                    {t.name} ({t.default_calories} kcal, {t.default_protein}g protein{isScalable(t) ? ` per ${t.default_grams}g` : ''})
                   </option>
                 ))}
               </select>
@@ -288,7 +309,7 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
           {/* Input Fields: Description is wide/large, calories & protein stay compact */}
           <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
             {/* Wide Food Description input */}
-            <div className="md:col-span-8">
+            <div className="md:col-span-6">
               <label className="block text-xs font-medium text-slate-500 mb-1">Food / Dish Description</label>
               <input
                 type="text"
@@ -297,6 +318,20 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
                 onChange={(e) => setName(e.target.value)}
                 required
                 className="w-full text-sm border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
+              />
+            </div>
+
+            {/* Optional grams: rescales calories/protein when a scalable template is selected */}
+            <div className="md:col-span-2">
+              <label className="block text-xs font-medium text-slate-500 mb-1">Grams (opt)</label>
+              <input
+                type="number"
+                step="any"
+                min="0"
+                placeholder="g"
+                value={grams}
+                onChange={(e) => handleGramsChange(e.target.value)}
+                className="w-full text-sm border border-slate-300 rounded-xl px-3 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs"
               />
             </div>
 

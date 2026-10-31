@@ -50,6 +50,7 @@ class FoodTemplate(Base):
     name = Column(String, nullable=False)
     default_calories = Column(Numeric(8, 3), nullable=False)
     default_protein = Column(Numeric(7, 3), nullable=False, default=0.0)
+    default_grams = Column(Numeric(8, 2), nullable=True)
     category = Column(String, nullable=True)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
@@ -89,6 +90,7 @@ class MealEntry(Base):
     name = Column(String, nullable=False)
     calories = Column(Numeric(8, 3), nullable=False)
     protein = Column(Numeric(7, 3), nullable=False, default=0.0)
+    grams = Column(Numeric(8, 2), nullable=True)
     sort_order = Column(Integer, default=0, nullable=False)
     created_at = Column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 

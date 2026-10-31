@@ -5,6 +5,7 @@ export interface MealEntry {
   name: string;
   calories: number;
   protein: number;
+  grams?: number | null;
   sort_order: number;
   created_at: string;
 }
@@ -45,6 +46,7 @@ export interface FoodTemplate {
   name: string;
   default_calories: number;
   default_protein: number;
+  default_grams?: number | null;
   category?: string | null;
   created_at: string;
 }

@@ -56,6 +56,7 @@ def build_daily_log_response(log: DailyLog, db: Optional[Session] = None) -> Dai
                 name=entry.name,
                 calories=c,
                 protein=p,
+                grams=float(entry.grams) if entry.grams is not None else None,
                 sort_order=entry.sort_order,
                 created_at=entry.created_at,
             )
