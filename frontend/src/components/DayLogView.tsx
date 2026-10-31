@@ -83,7 +83,6 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
 
   const handleEditDelete = async () => {
     if (!editingEntry) return;
-    if (!window.confirm(`Delete "${editingEntry.name}"?`)) return;
 
     setIsEditSaving(true);
     try {
@@ -260,36 +259,8 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
         )}
       </div>
 
-      {/* Energy Journal Section */}
-      <div className="mb-8">
-        <div className="flex items-baseline justify-between mb-2">
-          <h3 className="text-base font-bold text-slate-800 tracking-tight">Energy Journal</h3>
-          <span className="text-xs text-slate-400">
-            {journalText.length}/{JOURNAL_MAX_LENGTH}
-          </span>
-        </div>
-        <textarea
-          value={journalText}
-          onChange={(e) => setJournalText(e.target.value)}
-          maxLength={JOURNAL_MAX_LENGTH}
-          rows={4}
-          placeholder="How did you feel energy-wise today?"
-          className="w-full text-sm border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs resize-y"
-        />
-        <div className="flex justify-end mt-2">
-          <button
-            type="button"
-            onClick={handleJournalSave}
-            disabled={isJournalSaving}
-            className="bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
-          >
-            {isJournalSaving ? 'Saving...' : 'Save Journal'}
-          </button>
-        </div>
-      </div>
-
       {/* Add Food Item Section */}
-      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200">
+      <div className="bg-slate-50 rounded-2xl p-6 border border-slate-200 mb-8">
         <h4 className="text-sm font-bold text-slate-800 uppercase tracking-wider mb-4">Add Food Item</h4>
 
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -380,6 +351,34 @@ export const DayLogView: React.FC<DayLogViewProps> = ({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Energy Journal Section */}
+      <div>
+        <div className="flex items-baseline justify-between mb-2">
+          <h3 className="text-base font-bold text-slate-800 tracking-tight">Energy Journal</h3>
+          <span className="text-xs text-slate-400">
+            {journalText.length}/{JOURNAL_MAX_LENGTH}
+          </span>
+        </div>
+        <textarea
+          value={journalText}
+          onChange={(e) => setJournalText(e.target.value)}
+          maxLength={JOURNAL_MAX_LENGTH}
+          rows={4}
+          placeholder="How did you feel energy-wise today?"
+          className="w-full text-sm border border-slate-300 rounded-xl px-4 py-2.5 bg-white text-slate-800 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-xs resize-y"
+        />
+        <div className="flex justify-end mt-2">
+          <button
+            type="button"
+            onClick={handleJournalSave}
+            disabled={isJournalSaving}
+            className="bg-slate-800 hover:bg-slate-900 disabled:opacity-40 text-white text-xs font-bold px-4 py-2 rounded-lg transition cursor-pointer"
+          >
+            {isJournalSaving ? 'Saving...' : 'Save Journal'}
+          </button>
+        </div>
       </div>
 
       {/* Edit Item Modal (Delete lives here) */}
