@@ -72,3 +72,45 @@ def test_timeseries_analytics():
         assert "date" in first
         assert "total_calories" in first
         assert "total_protein" in first
+
+
+def test_scalable_template_and_entry_grams_roundtrip():
+    res = client.post(
+        "/api/templates",
+        json={"name": "Chicken breast (scalable)", "default_calories": 165.0, "default_protein": 31.0, "default_grams": 100.0},
+    )
+    assert res.status_code == 200
+    tpl = res.json()
+    assert tpl["default_grams"] == 100.0
+
+    entry_res = client.post(
+        "/api/logs/2030-01-01/entries",
+        json={"name": tpl["name"], "calories": 247.5, "protein": 46.5, "grams": 150.0, "template_id": tpl["id"]},
+    )
+    assert entry_res.status_code == 200
+    entries = entry_res.json()["entries"]
+    assert entries[-1]["grams"] == 150.0
+
+
+def test_legacy_template_and_entry_without_grams():
+    res = client.post(
+        "/api/templates",
+        json={"name": "Legacy flat template", "default_calories": 300.0, "default_protein": 20.0},
+    )
+    assert res.status_code == 200
+    assert res.json()["default_grams"] is None
+
+    entry_res = client.post(
+        "/api/logs/2030-01-02/entries",
+        json={"name": "Flat entry", "calories": 300.0, "protein": 20.0},
+    )
+    assert entry_res.status_code == 200
+    assert entry_res.json()["entries"][-1]["grams"] is None
+
+
+def test_rejects_non_positive_grams():
+    res = client.post(
+        "/api/templates",
+        json={"name": "Bad grams", "default_calories": 100.0, "default_grams": 0},
+    )
+    assert res.status_code == 422

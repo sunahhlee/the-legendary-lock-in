@@ -219,6 +219,7 @@ def add_meal_entry(
             name=entry_in.name,
             default_calories=entry_in.calories,
             default_protein=entry_in.protein,
+            default_grams=entry_in.grams,
         )
         db.add(template)
         db.flush()
@@ -230,6 +231,7 @@ def add_meal_entry(
         name=entry_in.name,
         calories=entry_in.calories,
         protein=entry_in.protein,
+        grams=entry_in.grams,
         sort_order=entry_in.sort_order,
     )
     db.add(new_entry)
@@ -256,6 +258,8 @@ def update_meal_entry(
         entry.calories = entry_update.calories
     if entry_update.protein is not None:
         entry.protein = entry_update.protein
+    if entry_update.grams is not None:
+        entry.grams = entry_update.grams
     if entry_update.sort_order is not None:
         entry.sort_order = entry_update.sort_order
 
@@ -269,6 +273,7 @@ def update_meal_entry(
         name=entry.name,
         calories=float(entry.calories),
         protein=float(entry.protein),
+        grams=float(entry.grams) if entry.grams is not None else None,
         sort_order=entry.sort_order,
         created_at=entry.created_at,
     )
@@ -320,6 +325,7 @@ def get_food_templates(db: Session = Depends(get_db)):
             name=t.name,
             default_calories=float(t.default_calories),
             default_protein=float(t.default_protein),
+            default_grams=float(t.default_grams) if t.default_grams is not None else None,
             category=t.category,
             created_at=t.created_at,
         )
@@ -338,6 +344,7 @@ def create_food_template(
         name=template_in.name,
         default_calories=template_in.default_calories,
         default_protein=template_in.default_protein,
+        default_grams=template_in.default_grams,
         category=template_in.category,
     )
     db.add(template)
@@ -350,6 +357,7 @@ def create_food_template(
         name=template.name,
         default_calories=float(template.default_calories),
         default_protein=float(template.default_protein),
+        default_grams=float(template.default_grams) if template.default_grams is not None else None,
         category=template.category,
         created_at=template.created_at,
     )

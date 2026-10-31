@@ -163,7 +163,7 @@ export default function App() {
   }, [userId]);
 
   const handleAddEntry = async (
-    entry: { name: string; calories: number; protein: number; template_id?: string | null },
+    entry: { name: string; calories: number; protein: number; grams?: number | null; template_id?: string | null },
     saveTemplate: boolean
   ) => {
     const updatedLog = await api.addMealEntry(currentDate, entry, saveTemplate);
@@ -199,6 +199,7 @@ export default function App() {
     name: string;
     default_calories: number;
     default_protein: number;
+    default_grams?: number;
     category?: string;
   }) => {
     await api.createTemplate(template);

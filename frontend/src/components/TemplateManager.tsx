@@ -3,7 +3,7 @@ import { FoodTemplate } from '../types';
 
 interface TemplateManagerProps {
   templates: FoodTemplate[];
-  onCreateTemplate: (template: { name: string; default_calories: number; default_protein: number; category?: string }) => Promise<void>;
+  onCreateTemplate: (template: { name: string; default_calories: number; default_protein: number; default_grams?: number; category?: string }) => Promise<void>;
   onDeleteTemplate: (id: string) => Promise<void>;
 }
 
@@ -15,6 +15,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
   const [name, setName] = useState('');
   const [calories, setCalories] = useState('');
   const [protein, setProtein] = useState('');
+  const [grams, setGrams] = useState('');
   const [category, setCategory] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
@@ -29,11 +30,13 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
         name: name.trim(),
         default_calories: parseFloat(calories),
         default_protein: protein ? parseFloat(protein) : 0.0,
+        default_grams: grams ? parseFloat(grams) : undefined,
         category: category.trim() || undefined,
       });
       setName('');
       setCalories('');
       setProtein('');
+      setGrams('');
       setCategory('');
     } finally {
       setIsSubmitting(false);
@@ -58,7 +61,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
       {isOpen && (
         <div className="mt-5 pt-4 border-t border-gray-100">
           {/* Create Template Form */}
-          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-5 gap-2 mb-4">
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-6 gap-2 mb-4">
             <input
               type="text"
               placeholder="Template Name..."
@@ -84,6 +87,15 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
               onChange={(e) => setProtein(e.target.value)}
               className="text-xs border border-gray-300 rounded px-2.5 py-1.5"
             />
+            <input
+              type="number"
+              step="any"
+              min="0"
+              placeholder="Per grams (opt)"
+              value={grams}
+              onChange={(e) => setGrams(e.target.value)}
+              className="text-xs border border-gray-300 rounded px-2.5 py-1.5"
+            />
             <button
               type="submit"
               disabled={isSubmitting || !name || !calories}
@@ -107,6 +119,7 @@ export const TemplateManager: React.FC<TemplateManagerProps> = ({
                     <span className="font-semibold text-gray-800">{t.name}</span>
                     <div className="text-gray-500 text-[11px]">
                       {t.default_calories} kcal • {t.default_protein}g protein
+                      {t.default_grams ? ` • per ${t.default_grams}g` : ''}
                     </div>
                   </div>
                   <button

@@ -31,7 +31,7 @@ export const api = {
 
   async addMealEntry(
     date: string,
-    entry: { name: string; calories: number; protein: number; template_id?: string | null },
+    entry: { name: string; calories: number; protein: number; grams?: number | null; template_id?: string | null },
     saveAsTemplate: boolean = false
   ): Promise<DailyLog> {
     const res = await fetch(`/api/logs/${date}/entries?save_as_template=${saveAsTemplate}`, {
@@ -83,6 +83,7 @@ export const api = {
     name: string;
     default_calories: number;
     default_protein: number;
+    default_grams?: number;
     category?: string;
   }): Promise<FoodTemplate> {
     const res = await fetch('/api/templates', {
