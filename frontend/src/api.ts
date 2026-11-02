@@ -1,5 +1,23 @@
 import { DailyLog, MealEntry, FoodTemplate, JournalEntry, TimeseriesResponse, UserGoal } from './types';
 
+let authToken: string | null = null;
+
+export function setAuthToken(token: string | null) {
+  authToken = token;
+}
+
+function authHeaders(): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  return headers;
+}
+
+function baseHeaders(): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (authToken) headers['Authorization'] = `Bearer ${authToken}`;
+  return headers;
+}
+
 export const api = {
   async getJournalEntries(startDate?: string, endDate?: string, limit?: number): Promise<JournalEntry[]> {
     const params = new URLSearchParams();
@@ -14,7 +32,7 @@ export const api = {
   },
 
   async getDailyLog(date: string): Promise<DailyLog> {
-    const res = await fetch(`/api/logs/${date}`);
+    const res = await fetch(`/api/logs/${date}`, { headers: baseHeaders() });
     if (!res.ok) throw new Error(`Failed to fetch daily log for ${date}`);
     return res.json();
   },
@@ -36,7 +54,7 @@ export const api = {
   ): Promise<DailyLog> {
     const res = await fetch(`/api/logs/${date}/entries?save_as_template=${saveAsTemplate}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(entry),
     });
     if (!res.ok) throw new Error('Failed to add meal entry');
@@ -49,7 +67,7 @@ export const api = {
   ): Promise<MealEntry> {
     const res = await fetch(`/api/entries/${id}`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(update),
     });
     if (!res.ok) throw new Error('Failed to update meal entry');
@@ -57,7 +75,7 @@ export const api = {
   },
 
   async deleteMealEntry(id: string): Promise<{ message: string; id: string }> {
-    const res = await fetch(`/api/entries/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/entries/${id}`, { method: 'DELETE', headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to delete meal entry');
     return res.json();
   },
@@ -67,14 +85,13 @@ export const api = {
     if (startDate) params.set('start_date', startDate);
     if (endDate) params.set('end_date', endDate);
     const qs = params.toString() ? `?${params.toString()}` : '';
-
-    const res = await fetch(`/api/analytics/timeseries${qs}`);
+    const res = await fetch(`/api/analytics/timeseries${qs}`, { headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to fetch timeseries analytics');
     return res.json();
   },
 
   async getTemplates(): Promise<FoodTemplate[]> {
-    const res = await fetch('/api/templates');
+    const res = await fetch('/api/templates', { headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to fetch food templates');
     return res.json();
   },
@@ -88,7 +105,7 @@ export const api = {
   }): Promise<FoodTemplate> {
     const res = await fetch('/api/templates', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(template),
     });
     if (!res.ok) throw new Error('Failed to create food template');
@@ -96,13 +113,12 @@ export const api = {
   },
 
   async deleteTemplate(id: string): Promise<void> {
-    const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+    const res = await fetch(`/api/templates/${id}`, { method: 'DELETE', headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to delete template');
   },
 
-  // User Goals
   async getUserGoals(userId: string): Promise<UserGoal[]> {
-    const res = await fetch(`/api/users/${userId}/goals`);
+    const res = await fetch(`/api/users/${userId}/goals`, { headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to fetch user goals');
     return res.json();
   },
@@ -119,7 +135,7 @@ export const api = {
   ): Promise<UserGoal> {
     const res = await fetch(`/api/users/${userId}/goals`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify(goal),
     });
     if (!res.ok) throw new Error('Failed to create user goal');
@@ -127,7 +143,16 @@ export const api = {
   },
 
   async deleteUserGoal(goalId: string): Promise<void> {
-    const res = await fetch(`/api/goals/${goalId}`, { method: 'DELETE' });
+    const res = await fetch(`/api/goals/${goalId}`, { method: 'DELETE', headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to delete goal');
+  },
+
+  async updateUsername(username: string): Promise<void> {
+    const res = await fetch('/api/me', {
+      method: 'PUT',
+      headers: authHeaders(),
+      body: JSON.stringify({ username }),
+    });
+    if (!res.ok) throw new Error('Failed to update username');
   },
 };
