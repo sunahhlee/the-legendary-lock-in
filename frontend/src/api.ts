@@ -26,7 +26,7 @@ export const api = {
     if (limit) params.set('limit', String(limit));
     const qs = params.toString() ? `?${params.toString()}` : '';
 
-    const res = await fetch(`/api/journal${qs}`);
+    const res = await fetch(`/api/journal${qs}`, { headers: baseHeaders() });
     if (!res.ok) throw new Error('Failed to fetch journal entries');
     return res.json();
   },
@@ -40,7 +40,7 @@ export const api = {
   async updateEnergyJournal(date: string, energyJournal: string): Promise<DailyLog> {
     const res = await fetch(`/api/logs/${date}/energy-journal`, {
       method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders(),
       body: JSON.stringify({ energy_journal: energyJournal }),
     });
     if (!res.ok) throw new Error('Failed to save energy journal');
