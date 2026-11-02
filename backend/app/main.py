@@ -1,4 +1,7 @@
-from fastapi import FastAPI
+import logging
+import time
+
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
@@ -20,6 +23,23 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+logger = logging.getLogger("uvicorn.error")
+
+
+@app.middleware("http")
+async def log_slow_requests(request: Request, call_next):
+    """Log any request slower than 2s so hangs show up in the Render logs."""
+    start = time.perf_counter()
+    response = await call_next(request)
+    elapsed = time.perf_counter() - start
+    if elapsed > 2:
+        logger.warning(
+            "SLOW %s %s -> %s in %.1fs",
+            request.method, request.url.path, response.status_code, elapsed,
+        )
+    return response
+
 
 # Include Diet Tracker Router
 app.include_router(diet_router)

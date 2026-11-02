@@ -12,7 +12,11 @@ security = HTTPBearer()
 
 @lru_cache(maxsize=1)
 def _jwks_client(url: str) -> PyJWKClient:
-    return PyJWKClient(f"{url.rstrip('/')}/auth/v1/.well-known/jwks.json", cache_keys=True)
+    return PyJWKClient(
+        f"{url.rstrip('/')}/auth/v1/.well-known/jwks.json",
+        cache_keys=True,
+        timeout=5,  # default is 30s; fail fast instead of hanging every request
+    )
 
 
 def _decode(token: str) -> dict:

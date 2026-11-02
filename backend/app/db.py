@@ -39,6 +39,15 @@ if settings.SUPABASE_DB_URL:
         pool_pre_ping=True,
         pool_size=5,
         max_overflow=10,
+        pool_recycle=300,  # drop connections before the pooler/NAT silently kills them
+        pool_timeout=10,
+        connect_args={
+            "connect_timeout": 5,  # none by default -> unreachable host hangs for minutes
+            "keepalives": 1,
+            "keepalives_idle": 30,
+            "keepalives_interval": 10,
+            "keepalives_count": 3,
+        },
     )
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
