@@ -19,15 +19,18 @@ DECLARE
   new_id UUID := '<YOUR_AUTH_UUID>';   -- ← replace this
   new_email TEXT := '<YOUR_EMAIL>';    -- ← replace this
 BEGIN
-  -- Migrate FK references before touching the PK
-  UPDATE daily_logs    SET user_id = new_id WHERE user_id = old_id;
-  UPDATE food_templates SET user_id = new_id WHERE user_id = old_id;
-  UPDATE user_goals    SET user_id = new_id WHERE user_id = old_id;
+  -- 1. Create the new parent row first so the child FKs have a target
+  INSERT INTO users (id, email, created_at)
+  SELECT new_id, new_email, created_at FROM users WHERE id = old_id
+  ON CONFLICT (id) DO UPDATE SET email = EXCLUDED.email;
 
-  -- Update the user row itself
-  UPDATE users
-  SET id = new_id, email = new_email
-  WHERE id = old_id;
+  -- 2. Repoint all child rows to the new user
+  UPDATE daily_logs     SET user_id = new_id WHERE user_id = old_id;
+  UPDATE food_templates SET user_id = new_id WHERE user_id = old_id;
+  UPDATE user_goals     SET user_id = new_id WHERE user_id = old_id;
+
+  -- 3. Remove the old demo row (no children left, so nothing cascades)
+  DELETE FROM users WHERE id = old_id;
 END $$;
 
 COMMIT;

@@ -241,11 +241,12 @@ def list_journal_entries(
     start_date: Optional[date_type] = Query(None, description="Start date (YYYY-MM-DD)"),
     end_date: Optional[date_type] = Query(None, description="End date (YYYY-MM-DD)"),
     limit: Optional[int] = Query(10, ge=1, le=1000, description="Max entries, newest first"),
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """List non-empty energy journal entries, newest first. Defaults to the last 10."""
     query = db.query(DailyLog).filter(
-        DailyLog.user_id == CURRENT_USER_ID,
+        DailyLog.user_id == UUID(user_id_str),
         DailyLog.energy_journal.isnot(None),
         DailyLog.energy_journal != "",
     )
@@ -262,10 +263,11 @@ def list_journal_entries(
 def update_energy_journal(
     log_date: date_type,
     journal_in: EnergyJournalUpdate,
+    user_id_str: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """Set the freeform energy journal (max 500 chars) for a given date."""
-    log = get_or_create_daily_log(db, CURRENT_USER_ID, log_date)
+    log = get_or_create_daily_log(db, UUID(user_id_str), log_date)
     text = journal_in.energy_journal.strip() if journal_in.energy_journal else None
     log.energy_journal = text or None
     db.commit()
