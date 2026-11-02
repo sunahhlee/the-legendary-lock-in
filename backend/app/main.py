@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from sqlalchemy import text
 from app.config import settings
+from app.db import engine
 from app.routes import router as diet_router
 
 app = FastAPI(
@@ -32,7 +35,15 @@ def read_root():
 
 @app.get("/api/health")
 def health_check():
-    return {
-        "status": "ok",
-        "database": "connected" if settings.SUPABASE_DB_URL else "not_configured",
-    }
+    """Health check. Runs a real query so pings count as DB activity
+    (Supabase free tier pauses projects after ~7 days of inactivity)."""
+    if engine is None:
+        return {"status": "ok", "database": "not_configured"}
+    try:
+        with engine.connect() as conn:
+            conn.execute(text("SELECT 1"))
+        return {"status": "ok", "database": "connected"}
+    except Exception:
+        return JSONResponse(
+            status_code=503, content={"status": "degraded", "database": "unreachable"}
+        )
