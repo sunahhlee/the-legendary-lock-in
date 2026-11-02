@@ -1,0 +1,17 @@
+name: Keep alive
+
+# Pings the backend health endpoint (which runs SELECT 1 against Supabase).
+# - Render free web services spin down after 15 min idle -> ping every 10 min.
+# - Supabase free projects pause after 7 days idle -> any ping covers this.
+# GitHub's minimum cron interval is 5 min and runs may be delayed; 1 min isn't possible.
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping health endpoint
+        run: curl -fsS --retry 3 --retry-delay 10 --max-time 60 https://the-legendary-lock-in.onrender.com/api/health
