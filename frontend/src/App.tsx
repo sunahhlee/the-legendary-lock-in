@@ -17,7 +17,7 @@ const getDateNDaysAgo = (n: number) => {
 };
 
 export default function App() {
-  const { user, loading: authLoading, signOut } = useAuth();
+  const { user, session, loading: authLoading, signOut } = useAuth();
 
   const [currentDate, setCurrentDate] = useState<string>(toLocalDateString());
   const [isGoalsModalOpen, setIsGoalsModalOpen] = useState<boolean>(false);
@@ -56,7 +56,7 @@ export default function App() {
   useEffect(() => {
     if (!user) return;
     fetch(`/api/me?email=${encodeURIComponent(user.email ?? '')}`, {
-      headers: { Authorization: `Bearer ${(user as any).access_token ?? ''}` },
+      headers: { Authorization: `Bearer ${session?.access_token ?? ''}` },
     })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.username) setUsername(data.username); })
