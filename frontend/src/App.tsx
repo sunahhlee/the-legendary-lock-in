@@ -61,7 +61,7 @@ export default function App() {
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data?.username) setUsername(data.username); })
       .catch(() => {});
-  }, [user]);
+  }, [user?.id]);
 
   const loadTimeseries = async (
     rangeOpt: RangeOption = chartRange,
@@ -143,7 +143,9 @@ export default function App() {
       setLoading(false);
     };
     init();
-  }, [user]);
+    // Key on the id, not the object: Supabase re-emits a new `user` object when
+    // the browser tab regains focus, which would remount the page and wipe inputs.
+  }, [user?.id]);
 
   useEffect(() => {
     if (user) loadDailyLog(currentDate);
