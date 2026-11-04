@@ -208,7 +208,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                 tickLine={false}
                 axisLine={{ stroke: '#e2e8f0' }}
               />
-              {/* Right Y-Axis: Calories (fixed 700-3000 to emphasize day-to-day differences) */}
+              {/* Right Y-Axis: Calories (fixed 1000-3000 to emphasize day-to-day differences) */}
               <YAxis
                 yAxisId="left"
                 orientation="right"
@@ -216,8 +216,8 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                 fontSize={12}
                 tickLine={false}
                 axisLine={{ stroke: '#ffedd5' }}
-                domain={[700, 3000]}
-                ticks={[700, 1000, 1500, 2000, 2500, 3000]}
+                domain={[1000, 3000]}
+                ticks={[1000, 1500, 2000, 2500, 3000]}
                 allowDataOverflow
                 unit=" kcal"
               />
