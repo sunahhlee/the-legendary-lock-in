@@ -101,7 +101,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
         <div>
           <h2 className="text-lg font-bold text-slate-800">Macro Trends &amp; Targets Over Time</h2>
           <p className="text-xs text-slate-500">
-            Daily Calories (left axis) &amp; Daily Protein (right axis)
+            Daily Protein (left axis) &amp; Daily Calories (right axis)
           </p>
         </div>
 
@@ -194,7 +194,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
           No logged days found within the selected date range.
         </div>
       ) : (
-        <div style={{ width: '100%', height: 520 }}>
+        <div style={{ width: '100%', height: 600 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={formattedData}
@@ -208,26 +208,30 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
                 tickLine={false}
                 axisLine={{ stroke: '#e2e8f0' }}
               />
-              {/* Left Y-Axis: Calories */}
+              {/* Right Y-Axis: Calories (fixed 1000-3000 to emphasize day-to-day differences) */}
               <YAxis
                 yAxisId="left"
-                orientation="left"
+                orientation="right"
                 stroke="#ea580c"
                 fontSize={12}
                 tickLine={false}
                 axisLine={{ stroke: '#ffedd5' }}
-                domain={[0, 'auto']}
+                domain={[1000, 3000]}
+                ticks={[1000, 1500, 2000, 2500, 3000]}
+                allowDataOverflow
                 unit=" kcal"
               />
-              {/* Right Y-Axis: Protein */}
+              {/* Left Y-Axis: Protein (fixed 50-150g) */}
               <YAxis
                 yAxisId="right"
-                orientation="right"
+                orientation="left"
                 stroke="#16a34a"
                 fontSize={12}
                 tickLine={false}
                 axisLine={{ stroke: '#dcfce7' }}
-                domain={[0, 'auto']}
+                domain={[50, 150]}
+                ticks={[50, 75, 100, 125, 150]}
+                allowDataOverflow
                 unit="g"
               />
               <Tooltip

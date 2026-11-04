@@ -246,7 +246,7 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-100/60 text-slate-800 antialiased py-6 px-4 sm:px-6">
-      <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6 items-start">
+      <div className="max-w-[1232px] mx-auto flex flex-col lg:flex-row gap-6 items-start">
       <div className="w-full min-w-0 flex-1">
       {/* Top Header Card */}
       <div className="mb-6">
