@@ -194,7 +194,7 @@ export const DualAxisMacroChart: React.FC<DualAxisMacroChartProps> = ({
           No logged days found within the selected date range.
         </div>
       ) : (
-        <div style={{ width: '100%', height: 520 }}>
+        <div style={{ width: '100%', height: 600 }}>
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
               data={formattedData}
